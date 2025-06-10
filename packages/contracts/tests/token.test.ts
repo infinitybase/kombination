@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { KombinationTokenFactory } from "../src";
-import { AssetId, callAndWait, get, Identity } from "./utils";
+import { Address, AssetId, callAndWait, get, Identity } from "./utils";
 import {
   PartTypeInput,
   PartTypeOutput,
@@ -33,12 +33,20 @@ const setup = async () => {
   const { wallets } = node;
   const [wallet] = wallets;
 
-  const deploy = await KombinationTokenFactory.deploy(wallet);
+  const configurables = {
+    INITIAL_OWNER: Address.bits(wallet),
+    NAME: "Kombination",
+    SYMBOL: "KMB",
+  };
+  const deploy = await KombinationTokenFactory.deploy(wallet, {
+    configurableConstants: configurables,
+  });
   const { contract } = await deploy.waitForResult();
 
   return {
     contract,
     wallet,
+    configurables,
     ...node,
   };
 };
@@ -120,5 +128,21 @@ describe("KombinationToken", async () => {
         contract.functions.mint_part(subId, Identity.address(wallet)),
       ),
     ).rejects.toThrow("Part not registered");
+  });
+
+  test("should execute SRC20 methods correctly", async () => {
+    const { contract, configurables } = testSetup;
+
+    const subId = partSubIDCoder.encodeSha256(0);
+    const assetId = AssetId.bits(contract, subId);
+
+    const name = await get(contract.functions.name(assetId));
+    expect(name).toBe(configurables.NAME);
+
+    const symbol = await get(contract.functions.symbol(assetId));
+    expect(symbol).toBe(configurables.SYMBOL);
+
+    const decimals = await get(contract.functions.decimals(assetId));
+    expect(decimals).toBe(0);
   });
 });

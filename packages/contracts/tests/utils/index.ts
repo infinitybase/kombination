@@ -20,12 +20,18 @@ export const callAndWait = async <T extends unknown[], R>(
   return result.waitForResult();
 };
 
+export const Address = {
+  bits: (account: string | Account) => {
+    return {
+      bits: typeof account === "string" ? account : account.address.toB256(),
+    };
+  },
+};
+
 export const Identity = {
   address: (account: string | Account) => {
     return {
-      Address: {
-        bits: typeof account === "string" ? account : account.address.toB256(),
-      },
+      Address: Address.bits(account),
     };
   },
 };
@@ -33,5 +39,11 @@ export const Identity = {
 export const AssetId = {
   new: (contract: Contract, subId: string) => {
     return getMintedAssetId(contract.id.toB256(), subId);
+  },
+  bits: (contract: Contract, subId: string) => {
+    const bits = AssetId.new(contract, subId);
+    return {
+      bits,
+    };
   },
 };
