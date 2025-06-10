@@ -5,6 +5,7 @@ use std::hash::{Hash, Hasher, sha256};
 use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SRC7}};
 use sway_libs::{
     asset::{
+        supply::_mint,
         base::{
             _name,
             _symbol,
@@ -42,6 +43,20 @@ enum PartType {
     SideStep: (),
 }
 
+impl Hash for PartType {
+    fn hash(self, ref mut state: Hasher) {
+        let value = match self {
+            PartType::HeadLight => 0,
+            PartType::Bumper => 1,
+            PartType::Antenna => 2,
+            PartType::Mirror => 3,
+            PartType::Screens => 4,
+            PartType::SideStep => 5,
+        };
+        value.hash(state);
+    }
+}
+
 enum AssetType {
     Kombi: (),
     Part: PartType,
@@ -66,6 +81,12 @@ struct PartRegisteredEvent {
     metadata: PartMetadata,
 }
 
+struct PartMintedEvent {
+    part_id: PartSubId,
+    asset_id: AssetId,
+    recipient: Identity,
+}
+
 storage {
     asset {
         total_assets: u64 = 0,
@@ -73,9 +94,10 @@ storage {
         name: StorageMap<AssetId, StorageString> = StorageMap {},
         symbol: StorageMap<AssetId, StorageString> = StorageMap {},
         metadata: StorageMetadata = StorageMetadata {},
+        asset_type: StorageMap<AssetId, AssetType> = StorageMap {},
     },
     parts {
-        total_parts: u64 = 0,
+        total_parts: StorageMap<PartType, u64> = StorageMap {},
         part_type: StorageMap<PartSubId, PartType> = StorageMap {},
         metadata: StorageMetadata = StorageMetadata {},
     },
@@ -83,17 +105,55 @@ storage {
 
 abi KombinationToken {
     #[storage(read, write)]
+    fn mint_part(part_id: PartSubId, recipient: Identity);
+
+    #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata);
 
     #[storage(read)]
-    fn get_part_type(part_id: u64) -> Option<PartType>;
+    fn get_part_type(part_id: PartSubId) -> Option<PartType>;
 }
 
 impl KombinationToken for Contract {
     #[storage(read, write)]
+    fn mint_part(part_id: PartSubId, recipient: Identity) {
+        // TODO: Only admin can mint parts
+        let asset_id = AssetId::new(ContractId::this(), part_id);
+        require(
+            storage::asset.total_supply.get(asset_id).try_read().is_none(), 
+            "Part already minted"
+        );
+
+        let part_type = storage::parts.part_type.get(part_id).try_read();
+        require(
+            part_type.is_some(),
+            "Part not registered"
+        );
+
+        storage::asset.asset_type.insert(
+            asset_id, 
+            AssetType::Part(part_type.unwrap())
+        );
+
+        _mint(
+            storage::asset.total_assets,
+            storage::asset.total_supply,
+            recipient,
+            part_id,
+            1,
+        );
+
+        log(PartMintedEvent {
+            part_id,
+            asset_id,
+            recipient,
+        });
+    }
+
+    #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata) {
-        // TODO: Only owner can register parts
-        let part_id = storage::parts.total_parts.read();
+        // TODO: Only admin can register parts
+        let part_id = storage::parts.total_parts.get(part).try_read().unwrap_or(0);
         let sub_id = part_sub_id(part_id);
 
         log(sub_id);
@@ -125,7 +185,7 @@ impl KombinationToken for Contract {
             Metadata::String(metadata.uri)
         );
 
-        storage::parts.total_parts.write(part_id + 1);
+        storage::parts.total_parts.insert(part, part_id + 1);
 
         log(PartRegisteredEvent {
             part_id,
@@ -135,8 +195,8 @@ impl KombinationToken for Contract {
     }
 
     #[storage(read)]
-    fn get_part_type(part_id: u64) -> Option<PartType> {
-        storage::parts.part_type.get(part_sub_id(part_id)).try_read()
+    fn get_part_type(part_id: PartSubId) -> Option<PartType> {
+        storage::parts.part_type.get(part_id).try_read()
     }
 }
 

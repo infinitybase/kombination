@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { KombinationTokenFactory } from "../src";
-import { callAndWait, get } from "./utils";
+import { AssetId, callAndWait, get, Identity } from "./utils";
 import {
   PartTypeInput,
   PartTypeOutput,
@@ -44,6 +44,8 @@ const setup = async () => {
 };
 
 describe("KombinationToken", async () => {
+  const partSubIDCoder = new PartSubIDCoder();
+
   let testSetup: Awaited<ReturnType<typeof setup>>;
 
   beforeAll(async () => {
@@ -66,7 +68,6 @@ describe("KombinationToken", async () => {
     );
 
     const expectedPartSubID = result.logs[0];
-    const partSubIDCoder = new PartSubIDCoder();
     const partSubID = partSubIDCoder.encodeSha256(0);
 
     expect(partSubID).toEqual(expectedPartSubID);
@@ -75,10 +76,49 @@ describe("KombinationToken", async () => {
   test("should get part type correctly", async () => {
     const { contract } = testSetup;
 
-    let partType = await get(contract.functions.get_part_type(0));
+    let partType = await get(
+      contract.functions.get_part_type(partSubIDCoder.encodeSha256(0)),
+    );
     expect(partType).toBe(PartTypeOutput.Antenna);
 
-    partType = await get(contract.functions.get_part_type(1));
+    partType = await get(
+      contract.functions.get_part_type(partSubIDCoder.encodeSha256(1)),
+    );
     expect(partType).toBeUndefined;
+  });
+
+  test("should mint part correctly", async () => {
+    const { contract, wallet } = testSetup;
+    const subId = partSubIDCoder.encodeSha256(0);
+
+    await callAndWait(
+      contract.functions.mint_part(subId, Identity.address(wallet)),
+    );
+
+    const mintedAssetId = AssetId.new(contract, subId);
+    const balance = await wallet.getBalance(mintedAssetId);
+    expect(balance.toString()).toBe("1");
+  });
+
+  test("should not mint part twice", async () => {
+    const { contract, wallet } = testSetup;
+    const subId = partSubIDCoder.encodeSha256(0);
+
+    await expect(
+      callAndWait(
+        contract.functions.mint_part(subId, Identity.address(wallet)),
+      ),
+    ).rejects.toThrow("Part already minted");
+  });
+
+  test("should not mint part not registered", async () => {
+    const { contract, wallet } = testSetup;
+    const subId = partSubIDCoder.encodeSha256(100);
+
+    await expect(
+      callAndWait(
+        contract.functions.mint_part(subId, Identity.address(wallet)),
+      ),
+    ).rejects.toThrow("Part not registered");
   });
 });
