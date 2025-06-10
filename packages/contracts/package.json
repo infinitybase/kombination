@@ -8,7 +8,7 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "@packages/ts-config": "*",
+    "@packages/ts-config": "workspace:*",
     "@types/bun": "latest"
   },
   "peerDependencies": {

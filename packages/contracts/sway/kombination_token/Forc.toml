@@ -1,0 +1,9 @@
+[project]
+authors = ["Luis Burigo"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "kombination_token"
+
+[dependencies]
+standards = { git = "https://github.com/FuelLabs/sway-standards", tag = "v0.7.0" }
+sway_libs = { git = "https://github.com/FuelLabs/sway-libs", tag = "v0.25.2" }

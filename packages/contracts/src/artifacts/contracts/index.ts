@@ -6,9 +6,11 @@
 
 /*
   Fuels version: 0.100.0
-  Forc version: 0.67.0
-  Fuel-Core version: 0.41.9
+  Forc version: 0.68.2
+  Fuel-Core version: 0.43.2
 */
 
 export { KombinationExample } from './KombinationExample';
 export { KombinationExampleFactory } from './KombinationExampleFactory';
+export { KombinationToken } from './KombinationToken';
+export { KombinationTokenFactory } from './KombinationTokenFactory';

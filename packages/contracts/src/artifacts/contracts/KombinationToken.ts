@@ -6,8 +6,8 @@
 
 /*
   Fuels version: 0.100.0
-  Forc version: 0.67.0
-  Fuel-Core version: 0.41.9
+  Forc version: 0.68.2
+  Fuel-Core version: 0.43.2
 */
 
 import { Contract as __Contract, Interface } from "fuels";
@@ -22,20 +22,25 @@ import type {
   FunctionFragment,
   InvokeFunction,
   StdString,
+  StrSlice,
 } from 'fuels';
 
 import type { Option, Enum } from "./common";
 
+export enum AccessErrorInput { NotOwner = 'NotOwner' };
+export enum AccessErrorOutput { NotOwner = 'NotOwner' };
 export type IdentityInput = Enum<{ Address: AddressInput, ContractId: ContractIdInput }>;
 export type IdentityOutput = Enum<{ Address: AddressOutput, ContractId: ContractIdOutput }>;
-export type KombinationTokenErrorInput = Enum<{ SlotNotFound: string, InvalidSlotType: [], AssetAlreadyMinted: AssetIdInput, AssetNotFound: AssetIdInput, BaseNotAcceptsPiece: [string, string], AssetNotEquipped: AssetIdInput }>;
-export type KombinationTokenErrorOutput = Enum<{ SlotNotFound: string, InvalidSlotType: [], AssetAlreadyMinted: AssetIdOutput, AssetNotFound: AssetIdOutput, BaseNotAcceptsPiece: [string, string], AssetNotEquipped: AssetIdOutput }>;
+export enum InitializationErrorInput { CannotReinitialized = 'CannotReinitialized' };
+export enum InitializationErrorOutput { CannotReinitialized = 'CannotReinitialized' };
 export type MetadataInput = Enum<{ B256: string, Bytes: Bytes, Int: BigNumberish, String: StdString }>;
 export type MetadataOutput = Enum<{ B256: string, Bytes: Bytes, Int: BN, String: StdString }>;
-export enum MintErrorInput { ZeroAmount = 'ZeroAmount' };
-export enum MintErrorOutput { ZeroAmount = 'ZeroAmount' };
-export enum SlotInput { BASE = 'BASE', PIECE = 'PIECE' };
-export enum SlotOutput { BASE = 'BASE', PIECE = 'PIECE' };
+export enum PartTypeInput { HeadLight = 'HeadLight', Bumper = 'Bumper', Antenna = 'Antenna', Mirror = 'Mirror', Screens = 'Screens', SideStep = 'SideStep' };
+export enum PartTypeOutput { HeadLight = 'HeadLight', Bumper = 'Bumper', Antenna = 'Antenna', Mirror = 'Mirror', Screens = 'Screens', SideStep = 'SideStep' };
+export enum SetMetadataErrorInput { EmptyString = 'EmptyString', EmptyBytes = 'EmptyBytes' };
+export enum SetMetadataErrorOutput { EmptyString = 'EmptyString', EmptyBytes = 'EmptyBytes' };
+export type StateInput = Enum<{ Uninitialized: undefined, Initialized: IdentityInput, Revoked: undefined }>;
+export type StateOutput = Enum<{ Uninitialized: void, Initialized: IdentityOutput, Revoked: void }>;
 
 export type AddressInput = { bits: string };
 export type AddressOutput = AddressInput;
@@ -43,8 +48,20 @@ export type AssetIdInput = { bits: string };
 export type AssetIdOutput = AssetIdInput;
 export type ContractIdInput = { bits: string };
 export type ContractIdOutput = ContractIdInput;
-export type TotalSupplyEventInput = { asset: AssetIdInput, supply: BigNumberish, sender: IdentityInput };
-export type TotalSupplyEventOutput = { asset: AssetIdOutput, supply: BN, sender: IdentityOutput };
+export type OwnershipSetInput = { new_owner: IdentityInput };
+export type OwnershipSetOutput = { new_owner: IdentityOutput };
+export type PartMetadataInput = { bg_image: StdString, image: StdString, uri: StdString };
+export type PartMetadataOutput = PartMetadataInput;
+export type PartRegisteredEventInput = { part_id: BigNumberish, part_type: PartTypeInput, metadata: PartMetadataInput };
+export type PartRegisteredEventOutput = { part_id: BN, part_type: PartTypeOutput, metadata: PartMetadataOutput };
+export type SetMetadataEventInput = { asset: AssetIdInput, metadata: Option<MetadataInput>, key: StdString, sender: IdentityInput };
+export type SetMetadataEventOutput = { asset: AssetIdOutput, metadata: Option<MetadataOutput>, key: StdString, sender: IdentityOutput };
+
+export type KombinationTokenConfigurables = Partial<{
+  INITIAL_OWNER: AddressInput;
+  NAME: string;
+  SYMBOL: string;
+}>;
 
 const abi = {
   "programType": "contract",
@@ -56,11 +73,6 @@ const abi = {
       "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
     },
     {
-      "type": "(b256, enum kombination_lib::core::slot::Slot)",
-      "concreteTypeId": "f5b3ef36e2d74f138052b0cd3f6beec75c235fceb303bd8eca9e67bde77ba800",
-      "metadataTypeId": 0
-    },
-    {
       "type": "b256",
       "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
     },
@@ -69,56 +81,42 @@ const abi = {
       "concreteTypeId": "b760f44fa5965c2474a3b471467a22c43185152129295af588b022ae50b50903"
     },
     {
-      "type": "enum kombination_lib::core::slot::Slot",
-      "concreteTypeId": "af8d73a65416eb06552189dbb0fa44825156b7c6aebfa65f0c8b555d955729f5",
-      "metadataTypeId": 2
+      "type": "enum PartType",
+      "concreteTypeId": "5092208f62950c348ab35777284bca7cdb62040d1a3d7d8521d5d95f798da7ba",
+      "metadataTypeId": 0
     },
     {
-      "type": "enum kombination_lib::errors::KombinationTokenError",
-      "concreteTypeId": "dd4b4a6fc4d817b413772f10b5540b7a828f95a8ac699a13484d99387a42a138",
-      "metadataTypeId": 3
+      "type": "enum standards::src5::AccessError",
+      "concreteTypeId": "3f702ea3351c9c1ece2b84048006c8034a24cbc2bad2e740d0412b4172951d3d",
+      "metadataTypeId": 1
+    },
+    {
+      "type": "enum standards::src5::State",
+      "concreteTypeId": "192bc7098e2fe60635a9918afb563e4e5419d386da2bdbf0d716b4bc8549802c",
+      "metadataTypeId": 2
     },
     {
       "type": "enum standards::src7::Metadata",
       "concreteTypeId": "f44b531974c6c04e17e66ab54e9868d230b9a24b3710b184399c363f0190180d",
+      "metadataTypeId": 3
+    },
+    {
+      "type": "enum std::identity::Identity",
+      "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
       "metadataTypeId": 4
-    },
-    {
-      "type": "enum std::option::Option<(b256, enum kombination_lib::core::slot::Slot)>",
-      "concreteTypeId": "24d606711aefeb9ff73ba53064bf959795ec3a2d0d34157f8060d4cde46a925e",
-      "metadataTypeId": 6,
-      "typeArguments": [
-        "f5b3ef36e2d74f138052b0cd3f6beec75c235fceb303bd8eca9e67bde77ba800"
-      ]
-    },
-    {
-      "type": "enum std::option::Option<enum kombination_lib::core::slot::Slot>",
-      "concreteTypeId": "23fd33c28028d1547ac009e6845c3957d62f9dc5ce7501955856e32db096a3e1",
-      "metadataTypeId": 6,
-      "typeArguments": [
-        "af8d73a65416eb06552189dbb0fa44825156b7c6aebfa65f0c8b555d955729f5"
-      ]
     },
     {
       "type": "enum std::option::Option<enum standards::src7::Metadata>",
       "concreteTypeId": "fe93748eeb5d91a422fcea06e1b374216ad4ac0b2db01be0a6316af7f90dfa4f",
-      "metadataTypeId": 6,
+      "metadataTypeId": 5,
       "typeArguments": [
         "f44b531974c6c04e17e66ab54e9868d230b9a24b3710b184399c363f0190180d"
       ]
     },
     {
-      "type": "enum std::option::Option<struct std::asset_id::AssetId>",
-      "concreteTypeId": "191bf2140761b3c5ab6c43992d162bb3dc9d7f2272b2ee5f5eeea411ddedcd32",
-      "metadataTypeId": 6,
-      "typeArguments": [
-        "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
-      ]
-    },
-    {
       "type": "enum std::option::Option<struct std::string::String>",
       "concreteTypeId": "7c06d929390a9aeeb8ffccf8173ac0d101a9976d99dda01cce74541a81e75ac0",
-      "metadataTypeId": 6,
+      "metadataTypeId": 5,
       "typeArguments": [
         "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
       ]
@@ -126,7 +124,7 @@ const abi = {
     {
       "type": "enum std::option::Option<u64>",
       "concreteTypeId": "d852149004cc9ec0bbe7dc4e37bffea1d41469b759512b6136f2e865a4c06e7d",
-      "metadataTypeId": 6,
+      "metadataTypeId": 5,
       "typeArguments": [
         "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
       ]
@@ -134,30 +132,67 @@ const abi = {
     {
       "type": "enum std::option::Option<u8>",
       "concreteTypeId": "2da102c46c7263beeed95818cd7bee801716ba8303dddafdcd0f6c9efda4a0f1",
-      "metadataTypeId": 6,
+      "metadataTypeId": 5,
       "typeArguments": [
         "c89951a24c6ca28c13fd1cfdc646b2b656d69e61a92b91023be7eb58eb914b6b"
       ]
     },
     {
-      "type": "enum sway_libs::asset::errors::MintError",
-      "concreteTypeId": "dff9dfec998a49b40f1c4b09567400f0e712aaf939c08f7d07bc5c63116e1084",
+      "type": "enum sway_libs::asset::errors::SetMetadataError",
+      "concreteTypeId": "c6c09c148c1a1341c7ab81697b3545cc695fa67668a169cddc59790a9a0b6b44",
+      "metadataTypeId": 6
+    },
+    {
+      "type": "enum sway_libs::ownership::errors::InitializationError",
+      "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893",
       "metadataTypeId": 7
     },
     {
-      "type": "struct standards::src20::TotalSupplyEvent",
-      "concreteTypeId": "f255d5cc2114d1b6bc34bef4c28d4b60caccffd9a672ed16b79ea217e1c4a8a3",
+      "type": "str",
+      "concreteTypeId": "8c25cb3686462e9a86d2883c5688a22fe738b0bbc85f458d2d2b5f3f667c6d5a"
+    },
+    {
+      "type": "str[11]",
+      "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31"
+    },
+    {
+      "type": "str[3]",
+      "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2"
+    },
+    {
+      "type": "struct PartMetadata",
+      "concreteTypeId": "44b2e610283f0f6a58c3d5789fae52daedbff1f82dfa58c49a9771b6ec13d376",
       "metadataTypeId": 10
+    },
+    {
+      "type": "struct PartRegisteredEvent",
+      "concreteTypeId": "48119ff9b91a435266631a39bafbd487893d8adde3f64b8e09671ee01aa975b0",
+      "metadataTypeId": 11
+    },
+    {
+      "type": "struct standards::src7::SetMetadataEvent",
+      "concreteTypeId": "f1b1cc90b68559aa4bb5cc58201ebb5c5402ed3aa28927140761e8ff7dcd3ab8",
+      "metadataTypeId": 12
+    },
+    {
+      "type": "struct std::address::Address",
+      "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
+      "metadataTypeId": 13
     },
     {
       "type": "struct std::asset_id::AssetId",
       "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974",
-      "metadataTypeId": 12
+      "metadataTypeId": 14
     },
     {
       "type": "struct std::string::String",
       "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c",
-      "metadataTypeId": 16
+      "metadataTypeId": 18
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5",
+      "metadataTypeId": 19
     },
     {
       "type": "u64",
@@ -170,80 +205,66 @@ const abi = {
   ],
   "metadataTypes": [
     {
-      "type": "(_, _)",
+      "type": "enum PartType",
       "metadataTypeId": 0,
       "components": [
         {
-          "name": "__tuple_element",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+          "name": "HeadLight",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
-          "name": "__tuple_element",
-          "typeId": 2
+          "name": "Bumper",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "Antenna",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "Mirror",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "Screens",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "SideStep",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         }
       ]
     },
     {
-      "type": "(_, _)",
+      "type": "enum standards::src5::AccessError",
       "metadataTypeId": 1,
       "components": [
         {
-          "name": "__tuple_element",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "__tuple_element",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+          "name": "NotOwner",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         }
       ]
     },
     {
-      "type": "enum kombination_lib::core::slot::Slot",
+      "type": "enum standards::src5::State",
       "metadataTypeId": 2,
       "components": [
         {
-          "name": "BASE",
+          "name": "Uninitialized",
           "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         },
         {
-          "name": "PIECE",
+          "name": "Initialized",
+          "typeId": 4
+        },
+        {
+          "name": "Revoked",
           "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
-        }
-      ]
-    },
-    {
-      "type": "enum kombination_lib::errors::KombinationTokenError",
-      "metadataTypeId": 3,
-      "components": [
-        {
-          "name": "SlotNotFound",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "InvalidSlotType",
-          "typeId": 0
-        },
-        {
-          "name": "AssetAlreadyMinted",
-          "typeId": 12
-        },
-        {
-          "name": "AssetNotFound",
-          "typeId": 12
-        },
-        {
-          "name": "BaseNotAcceptsPiece",
-          "typeId": 1
-        },
-        {
-          "name": "AssetNotEquipped",
-          "typeId": 12
         }
       ]
     },
     {
       "type": "enum standards::src7::Metadata",
-      "metadataTypeId": 4,
+      "metadataTypeId": 3,
       "components": [
         {
           "name": "B256",
@@ -251,7 +272,7 @@ const abi = {
         },
         {
           "name": "Bytes",
-          "typeId": 13
+          "typeId": 15
         },
         {
           "name": "Int",
@@ -259,27 +280,27 @@ const abi = {
         },
         {
           "name": "String",
-          "typeId": 16
+          "typeId": 18
         }
       ]
     },
     {
       "type": "enum std::identity::Identity",
-      "metadataTypeId": 5,
+      "metadataTypeId": 4,
       "components": [
         {
           "name": "Address",
-          "typeId": 11
+          "typeId": 13
         },
         {
           "name": "ContractId",
-          "typeId": 15
+          "typeId": 17
         }
       ]
     },
     {
       "type": "enum std::option::Option",
-      "metadataTypeId": 6,
+      "metadataTypeId": 5,
       "components": [
         {
           "name": "None",
@@ -295,11 +316,25 @@ const abi = {
       ]
     },
     {
-      "type": "enum sway_libs::asset::errors::MintError",
+      "type": "enum sway_libs::asset::errors::SetMetadataError",
+      "metadataTypeId": 6,
+      "components": [
+        {
+          "name": "EmptyString",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "EmptyBytes",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        }
+      ]
+    },
+    {
+      "type": "enum sway_libs::ownership::errors::InitializationError",
       "metadataTypeId": 7,
       "components": [
         {
-          "name": "ZeroAmount",
+          "name": "CannotReinitialized",
           "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
         }
       ]
@@ -313,26 +348,72 @@ const abi = {
       "metadataTypeId": 9
     },
     {
-      "type": "struct standards::src20::TotalSupplyEvent",
+      "type": "struct PartMetadata",
       "metadataTypeId": 10,
       "components": [
         {
-          "name": "asset",
-          "typeId": 12
+          "name": "bg_image",
+          "typeId": 18
         },
         {
-          "name": "supply",
+          "name": "image",
+          "typeId": 18
+        },
+        {
+          "name": "uri",
+          "typeId": 18
+        }
+      ]
+    },
+    {
+      "type": "struct PartRegisteredEvent",
+      "metadataTypeId": 11,
+      "components": [
+        {
+          "name": "part_id",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
+          "name": "part_type",
+          "typeId": 0
+        },
+        {
+          "name": "metadata",
+          "typeId": 10
+        }
+      ]
+    },
+    {
+      "type": "struct standards::src7::SetMetadataEvent",
+      "metadataTypeId": 12,
+      "components": [
+        {
+          "name": "asset",
+          "typeId": 14
+        },
+        {
+          "name": "metadata",
+          "typeId": 5,
+          "typeArguments": [
+            {
+              "name": "",
+              "typeId": 3
+            }
+          ]
+        },
+        {
+          "name": "key",
+          "typeId": 18
+        },
+        {
           "name": "sender",
-          "typeId": 5
+          "typeId": 4
         }
       ]
     },
     {
       "type": "struct std::address::Address",
-      "metadataTypeId": 11,
+      "metadataTypeId": 13,
       "components": [
         {
           "name": "bits",
@@ -342,7 +423,7 @@ const abi = {
     },
     {
       "type": "struct std::asset_id::AssetId",
-      "metadataTypeId": 12,
+      "metadataTypeId": 14,
       "components": [
         {
           "name": "bits",
@@ -352,11 +433,11 @@ const abi = {
     },
     {
       "type": "struct std::bytes::Bytes",
-      "metadataTypeId": 13,
+      "metadataTypeId": 15,
       "components": [
         {
           "name": "buf",
-          "typeId": 14
+          "typeId": 16
         },
         {
           "name": "len",
@@ -366,7 +447,7 @@ const abi = {
     },
     {
       "type": "struct std::bytes::RawBytes",
-      "metadataTypeId": 14,
+      "metadataTypeId": 16,
       "components": [
         {
           "name": "ptr",
@@ -380,7 +461,7 @@ const abi = {
     },
     {
       "type": "struct std::contract_id::ContractId",
-      "metadataTypeId": 15,
+      "metadataTypeId": 17,
       "components": [
         {
           "name": "bits",
@@ -390,11 +471,21 @@ const abi = {
     },
     {
       "type": "struct std::string::String",
-      "metadataTypeId": 16,
+      "metadataTypeId": 18,
       "components": [
         {
           "name": "bytes",
-          "typeId": 13
+          "typeId": 15
+        }
+      ]
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "metadataTypeId": 19,
+      "components": [
+        {
+          "name": "new_owner",
+          "typeId": 4
         }
       ]
     }
@@ -403,70 +494,15 @@ const abi = {
     {
       "inputs": [
         {
-          "name": "base_asset",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
-        }
-      ],
-      "name": "equip",
-      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
+          "name": "part",
+          "concreteTypeId": "5092208f62950c348ab35777284bca7cdb62040d1a3d7d8521d5d95f798da7ba"
         },
         {
-          "name": "payable",
-          "arguments": []
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "piece_asset",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
+          "name": "metadata",
+          "concreteTypeId": "44b2e610283f0f6a58c3d5789fae52daedbff1f82dfa58c49a9771b6ec13d376"
         }
       ],
-      "name": "equipped_by",
-      "output": "191bf2140761b3c5ab6c43992d162bb3dc9d7f2272b2ee5f5eeea411ddedcd32",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "asset_id",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
-        }
-      ],
-      "name": "get_asset_slot",
-      "output": "24d606711aefeb9ff73ba53064bf959795ec3a2d0d34157f8060d4cde46a925e",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ],
-      "name": "mint_base",
+      "name": "register_part",
       "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
       "attributes": [
         {
@@ -481,180 +517,7 @@ const abi = {
     {
       "inputs": [
         {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ],
-      "name": "mint_piece",
-      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "piece_asset",
-          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
-        }
-      ],
-      "name": "unequip",
-      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        },
-        {
-          "name": "payable",
-          "arguments": []
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "slot_id_2",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ],
-      "name": "accept_slot",
-      "output": "b760f44fa5965c2474a3b471467a22c43185152129295af588b022ae50b50903",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ],
-      "name": "get_slot",
-      "output": "23fd33c28028d1547ac009e6845c3957d62f9dc5ce7501955856e32db096a3e1",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "key",
-          "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
-        }
-      ],
-      "name": "get_slot_metadata",
-      "output": "7c06d929390a9aeeb8ffccf8173ac0d101a9976d99dda01cce74541a81e75ac0",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot",
-          "concreteTypeId": "af8d73a65416eb06552189dbb0fa44825156b7c6aebfa65f0c8b555d955729f5"
-        }
-      ],
-      "name": "register_slot",
-      "output": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "slot_id_2",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ],
-      "name": "set_slot_config",
-      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "slot_id",
-          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "key",
-          "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
-        },
-        {
-          "name": "value",
-          "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
-        }
-      ],
-      "name": "set_slot_metadata",
-      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "asset",
+          "name": "_asset",
           "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
         }
       ],
@@ -757,27 +620,138 @@ const abi = {
           ]
         }
       ]
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "output": "192bc7098e2fe60635a9918afb563e4e5419d386da2bdbf0d716b4bc8549802c",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [],
+      "name": "is_paused",
+      "output": "b760f44fa5965c2474a3b471467a22c43185152129295af588b022ae50b50903",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [],
+      "name": "pause",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [],
+      "name": "unpause",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "owner",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "constructor",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
     }
   ],
   "loggedTypes": [
     {
-      "logId": "15945920749539694516",
-      "concreteTypeId": "dd4b4a6fc4d817b413772f10b5540b7a828f95a8ac699a13484d99387a42a138"
+      "logId": "8961848586872524460",
+      "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
     },
     {
-      "logId": "16139176946940135860",
-      "concreteTypeId": "dff9dfec998a49b40f1c4b09567400f0e712aaf939c08f7d07bc5c63116e1084"
+      "logId": "10098701174489624218",
+      "concreteTypeId": "8c25cb3686462e9a86d2883c5688a22fe738b0bbc85f458d2d2b5f3f667c6d5a"
     },
     {
-      "logId": "17462098202904023478",
-      "concreteTypeId": "f255d5cc2114d1b6bc34bef4c28d4b60caccffd9a672ed16b79ea217e1c4a8a3"
+      "logId": "17415926155927968170",
+      "concreteTypeId": "f1b1cc90b68559aa4bb5cc58201ebb5c5402ed3aa28927140761e8ff7dcd3ab8"
+    },
+    {
+      "logId": "14321618427101975361",
+      "concreteTypeId": "c6c09c148c1a1341c7ab81697b3545cc695fa67668a169cddc59790a9a0b6b44"
+    },
+    {
+      "logId": "5193107740236071762",
+      "concreteTypeId": "48119ff9b91a435266631a39bafbd487893d8adde3f64b8e09671ee01aa975b0"
+    },
+    {
+      "logId": "4571204900286667806",
+      "concreteTypeId": "3f702ea3351c9c1ece2b84048006c8034a24cbc2bad2e740d0412b4172951d3d"
+    },
+    {
+      "logId": "2161305517876418151",
+      "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893"
+    },
+    {
+      "logId": "16280289466020123285",
+      "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5"
     }
   ],
   "messagesTypes": [],
-  "configurables": []
+  "configurables": [
+    {
+      "name": "INITIAL_OWNER",
+      "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
+      "offset": 39200
+    },
+    {
+      "name": "NAME",
+      "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31",
+      "offset": 39232
+    },
+    {
+      "name": "SYMBOL",
+      "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2",
+      "offset": 39248
+    }
+  ]
 };
 
 const storageSlots: StorageSlot[] = [
+  {
+    "key": "9ee8c8ff2f6ac296f14ac717e52198c07bd15e362fac9e8bd449e58a1774455e",
+    "value": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
   {
     "key": "a90a0e2a8bf164bb999b25ae2a96818a4e7160e90de3a7cbdc52808ea614cf5c",
     "value": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -790,24 +764,18 @@ export class KombinationTokenInterface extends Interface {
   }
 
   declare functions: {
-    equip: FunctionFragment;
-    equipped_by: FunctionFragment;
-    get_asset_slot: FunctionFragment;
-    mint_base: FunctionFragment;
-    mint_piece: FunctionFragment;
-    unequip: FunctionFragment;
-    accept_slot: FunctionFragment;
-    get_slot: FunctionFragment;
-    get_slot_metadata: FunctionFragment;
-    register_slot: FunctionFragment;
-    set_slot_config: FunctionFragment;
-    set_slot_metadata: FunctionFragment;
+    register_part: FunctionFragment;
     decimals: FunctionFragment;
     name: FunctionFragment;
     symbol: FunctionFragment;
     total_assets: FunctionFragment;
     total_supply: FunctionFragment;
     metadata: FunctionFragment;
+    owner: FunctionFragment;
+    is_paused: FunctionFragment;
+    pause: FunctionFragment;
+    unpause: FunctionFragment;
+    constructor: FunctionFragment;
   };
 }
 
@@ -817,24 +785,18 @@ export class KombinationToken extends __Contract {
 
   declare interface: KombinationTokenInterface;
   declare functions: {
-    equip: InvokeFunction<[base_asset: AssetIdInput], void>;
-    equipped_by: InvokeFunction<[piece_asset: AssetIdInput], Option<AssetIdOutput>>;
-    get_asset_slot: InvokeFunction<[asset_id: AssetIdInput], Option<[string, SlotOutput]>>;
-    mint_base: InvokeFunction<[slot_id: string], void>;
-    mint_piece: InvokeFunction<[slot_id: string], void>;
-    unequip: InvokeFunction<[piece_asset: AssetIdInput], void>;
-    accept_slot: InvokeFunction<[slot_id: string, slot_id_2: string], boolean>;
-    get_slot: InvokeFunction<[id: string], Option<SlotOutput>>;
-    get_slot_metadata: InvokeFunction<[slot_id: string, key: StdString], Option<StdString>>;
-    register_slot: InvokeFunction<[slot: SlotInput], string>;
-    set_slot_config: InvokeFunction<[slot_id: string, slot_id_2: string], void>;
-    set_slot_metadata: InvokeFunction<[slot_id: string, key: StdString, value: StdString], void>;
-    decimals: InvokeFunction<[asset: AssetIdInput], Option<number>>;
+    register_part: InvokeFunction<[part: PartTypeInput, metadata: PartMetadataInput], void>;
+    decimals: InvokeFunction<[_asset: AssetIdInput], Option<number>>;
     name: InvokeFunction<[asset: AssetIdInput], Option<StdString>>;
     symbol: InvokeFunction<[asset: AssetIdInput], Option<StdString>>;
     total_assets: InvokeFunction<[], BN>;
     total_supply: InvokeFunction<[asset: AssetIdInput], Option<BN>>;
     metadata: InvokeFunction<[asset: AssetIdInput, key: StdString], Option<MetadataOutput>>;
+    owner: InvokeFunction<[], StateOutput>;
+    is_paused: InvokeFunction<[], boolean>;
+    pause: InvokeFunction<[], void>;
+    unpause: InvokeFunction<[], void>;
+    constructor: InvokeFunction<[owner: IdentityInput], void>;
   };
 
   constructor(
