@@ -106,6 +106,14 @@ const abi = {
       "metadataTypeId": 4
     },
     {
+      "type": "enum std::option::Option<enum PartType>",
+      "concreteTypeId": "f4a0c5b938076e0c109160d5daa80813b03295b147ad5028b11ca85220dd93ee",
+      "metadataTypeId": 5,
+      "typeArguments": [
+        "5092208f62950c348ab35777284bca7cdb62040d1a3d7d8521d5d95f798da7ba"
+      ]
+    },
+    {
       "type": "enum std::option::Option<enum standards::src7::Metadata>",
       "concreteTypeId": "fe93748eeb5d91a422fcea06e1b374216ad4ac0b2db01be0a6316af7f90dfa4f",
       "metadataTypeId": 5,
@@ -494,6 +502,24 @@ const abi = {
     {
       "inputs": [
         {
+          "name": "part_id",
+          "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        }
+      ],
+      "name": "get_part_type",
+      "output": "f4a0c5b938076e0c109160d5daa80813b03295b147ad5028b11ca85220dd93ee",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
           "name": "part",
           "concreteTypeId": "5092208f62950c348ab35777284bca7cdb62040d1a3d7d8521d5d95f798da7ba"
         },
@@ -732,17 +758,17 @@ const abi = {
     {
       "name": "INITIAL_OWNER",
       "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
-      "offset": 39200
+      "offset": 40672
     },
     {
       "name": "NAME",
       "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31",
-      "offset": 39232
+      "offset": 40704
     },
     {
       "name": "SYMBOL",
       "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2",
-      "offset": 39248
+      "offset": 40720
     }
   ]
 };
@@ -764,6 +790,7 @@ export class KombinationTokenInterface extends Interface {
   }
 
   declare functions: {
+    get_part_type: FunctionFragment;
     register_part: FunctionFragment;
     decimals: FunctionFragment;
     name: FunctionFragment;
@@ -785,6 +812,7 @@ export class KombinationToken extends __Contract {
 
   declare interface: KombinationTokenInterface;
   declare functions: {
+    get_part_type: InvokeFunction<[part_id: BigNumberish], Option<PartTypeOutput>>;
     register_part: InvokeFunction<[part: PartTypeInput, metadata: PartMetadataInput], void>;
     decimals: InvokeFunction<[_asset: AssetIdInput], Option<number>>;
     name: InvokeFunction<[asset: AssetIdInput], Option<StdString>>;

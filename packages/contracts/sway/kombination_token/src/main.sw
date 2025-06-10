@@ -84,6 +84,9 @@ storage {
 abi KombinationToken {
     #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata);
+
+    #[storage(read)]
+    fn get_part_type(part_id: u64) -> Option<PartType>;
 }
 
 impl KombinationToken for Contract {
@@ -129,6 +132,11 @@ impl KombinationToken for Contract {
             part_type: part,
             metadata,
         });
+    }
+
+    #[storage(read)]
+    fn get_part_type(part_id: u64) -> Option<PartType> {
+        storage::parts.part_type.get(part_sub_id(part_id)).try_read()
     }
 }
 

@@ -1,9 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { KombinationTokenFactory } from "../src";
-import { callAndWait } from "./utils";
-import { PartTypeInput } from "../src/artifacts/contracts/KombinationToken";
-import { B256Coder, BigNumberCoder, BNInput, sha256, TupleCoder } from "fuels";
+import { callAndWait, get } from "./utils";
+import {
+  PartTypeInput,
+  PartTypeOutput,
+} from "../src/artifacts/contracts/KombinationToken";
+import { B256Coder, BigNumberCoder, sha256, TupleCoder } from "fuels";
 
 const PART_PREFIX =
   "0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc";
@@ -67,5 +70,15 @@ describe("KombinationToken", async () => {
     const partSubID = partSubIDCoder.encodeSha256(0);
 
     expect(partSubID).toEqual(expectedPartSubID);
+  });
+
+  test("should get part type correctly", async () => {
+    const { contract } = testSetup;
+
+    let partType = await get(contract.functions.get_part_type(0));
+    expect(partType).toBe(PartTypeOutput.Antenna);
+
+    partType = await get(contract.functions.get_part_type(1));
+    expect(partType).toBeUndefined;
   });
 });
