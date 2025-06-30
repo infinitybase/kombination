@@ -63,13 +63,25 @@ enum AssetType {
 }
 
 struct PartMetadata {
+    kombi_type_id: KombiTypeSubId,
+    bg_image: String,
+    image: String,
+    uri: String,
+}
+
+struct KombiTypeMetadata {
+    name: String,
+    description: String,
     bg_image: String,
     image: String,
     uri: String,
 }
 
 const PART_PREFIX: b256 = 0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc;
+const KOMBI_PREFIX: b256 = 0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620;
+
 type PartSubId = b256;
+type KombiTypeSubId = b256;
 
 fn part_sub_id(part_id: u64) -> PartSubId {
     sha256((PART_PREFIX, part_id))
@@ -77,6 +89,7 @@ fn part_sub_id(part_id: u64) -> PartSubId {
 
 struct PartRegisteredEvent {
     part_id: u64,
+    sub_id: PartSubId,
     part_type: PartType,
     metadata: PartMetadata,
 }
@@ -85,6 +98,12 @@ struct PartMintedEvent {
     part_id: PartSubId,
     asset_id: AssetId,
     recipient: Identity,
+}
+
+struct KombiTypeRegisteredEvent {
+    kombi_id: u64,
+    sub_id: KombiTypeSubId,
+    metadata: KombiTypeMetadata,
 }
 
 storage {
@@ -97,10 +116,16 @@ storage {
         asset_type: StorageMap<AssetId, AssetType> = StorageMap {},
     },
     parts {
+        metadata: StorageMetadata = StorageMetadata {},
         total_parts: StorageMap<PartType, u64> = StorageMap {},
         part_type: StorageMap<PartSubId, PartType> = StorageMap {},
-        metadata: StorageMetadata = StorageMetadata {},
+        part_kombi_type: StorageMap<PartSubId, KombiTypeSubId> = StorageMap {},
     },
+    kombi {
+        total_types: u64 = 0,
+        kombi_type: StorageMap<KombiTypeSubId, bool> = StorageMap {},
+        metadata: StorageMetadata = StorageMetadata {},
+    }
 }
 
 abi KombinationToken {
@@ -109,6 +134,9 @@ abi KombinationToken {
 
     #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata);
+
+    #[storage(read, write)]
+    fn register_kombi_type(metadata: KombiTypeMetadata);
 
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType>;
@@ -156,11 +184,14 @@ impl KombinationToken for Contract {
         let part_id = storage::parts.total_parts.get(part).try_read().unwrap_or(0);
         let sub_id = part_sub_id(part_id);
 
-        log(sub_id);
-
         require(
             storage::parts.part_type.get(sub_id).try_read().is_none(), 
             "Part already registered"
+        );
+
+        require(
+            storage::kombi.kombi_type.get(metadata.kombi_type_id).try_read().is_some(),
+            "Kombi type not registered"
         );
 
         storage::parts.part_type.insert(sub_id, part);
@@ -185,11 +216,71 @@ impl KombinationToken for Contract {
             Metadata::String(metadata.uri)
         );
 
+        storage::parts.part_kombi_type.insert(sub_id, metadata.kombi_type_id);
         storage::parts.total_parts.insert(part, part_id + 1);
 
         log(PartRegisteredEvent {
             part_id,
+            sub_id,
             part_type: part,
+            metadata,
+        });
+    }
+
+    #[storage(read, write)]
+    fn register_kombi_type(metadata: KombiTypeMetadata) {
+        // TODO: Only admin can register kombi types
+        let total_types = storage::kombi.total_types.read();
+        let kombi_type_id = sha256((KOMBI_PREFIX, total_types));
+
+        require(
+            storage::kombi.kombi_type.get(kombi_type_id).try_read().is_none(),
+            "Kombi type already registered"
+        );
+
+        let asset_id = AssetId::new(ContractId::zero(), kombi_type_id);
+
+        _set_metadata(
+            storage::kombi.metadata, 
+            asset_id, 
+            String::from_ascii_str("bg_image"), 
+            Metadata::String(metadata.bg_image)
+        );
+
+        _set_metadata(
+            storage::kombi.metadata, 
+            asset_id, 
+            String::from_ascii_str("image"), 
+            Metadata::String(metadata.image)
+        );
+
+        _set_metadata(
+            storage::kombi.metadata, 
+            asset_id, 
+            String::from_ascii_str("uri"), 
+            Metadata::String(metadata.uri)
+        );
+
+        _set_metadata(
+            storage::kombi.metadata, 
+            asset_id, 
+            String::from_ascii_str("name"), 
+            Metadata::String(metadata.name)
+        );
+
+        _set_metadata(
+            storage::kombi.metadata, 
+            asset_id, 
+            String::from_ascii_str("description"), 
+            Metadata::String(metadata.description)
+        );
+        
+        storage::kombi.total_types.write(total_types + 1);
+        storage::kombi.kombi_type.insert(kombi_type_id, true);
+
+        log(KombiTypeRegisteredEvent {
+            kombi_id: total_types,
+            sub_id: kombi_type_id,
             metadata,
         });
     }

@@ -11,6 +11,25 @@ import { B256Coder, BigNumberCoder, sha256, TupleCoder } from "fuels";
 const PART_PREFIX =
   "0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc";
 
+const KOMBI_PREFIX =
+  "0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620";
+
+class KombiTypeSubIDCoder {
+  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
+
+  constructor() {
+    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
+  }
+
+  encode(kombiTypeId: number) {
+    return this.coder.encode([KOMBI_PREFIX, kombiTypeId]);
+  }
+
+  encodeSha256(kombiTypeId: number) {
+    return sha256(this.encode(kombiTypeId));
+  }
+}
+
 class PartSubIDCoder {
   private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
 
@@ -53,6 +72,7 @@ const setup = async () => {
 
 describe("KombinationToken", async () => {
   const partSubIDCoder = new PartSubIDCoder();
+  const kombiTypeSubIDCoder = new KombiTypeSubIDCoder();
 
   let testSetup: Awaited<ReturnType<typeof setup>>;
 
@@ -64,21 +84,44 @@ describe("KombinationToken", async () => {
     testSetup.cleanup();
   });
 
+  test("should register kombi type correctly", async () => {
+    const { contract } = testSetup;
+
+    const result = await callAndWait(
+      contract.functions.register_kombi_type({
+        bg_image: "https://example.com",
+        image: "https://example.com",
+        uri: "https://example.com/1.json",
+        name: "Kombi Type 1",
+        description: "Kombi Type 1 Description",
+      }),
+    );
+
+    const registeredEvent = result.logs[result.logs.length - 1];
+    const expectedKombiTypeSubID = kombiTypeSubIDCoder.encodeSha256(0);
+
+    expect(registeredEvent.kombi_id.toNumber()).toEqual(0);
+    expect(registeredEvent.sub_id).toEqual(expectedKombiTypeSubID);
+  });
+
   test("should register part correctly", async () => {
     const { contract } = testSetup;
 
+    const kombiTypeSubID = kombiTypeSubIDCoder.encodeSha256(0);
     const result = await callAndWait(
       contract.functions.register_part(PartTypeInput.Antenna, {
         bg_image: "https://example.com",
         image: "https://example.com",
         uri: "https://example.com/1.json",
+        kombi_type_id: kombiTypeSubID,
       }),
     );
 
-    const expectedPartSubID = result.logs[0];
-    const partSubID = partSubIDCoder.encodeSha256(0);
+    const partRegisteredEvent = result.logs[result.logs.length - 1];
+    const expectedPartSubID = partSubIDCoder.encodeSha256(0);
 
-    expect(partSubID).toEqual(expectedPartSubID);
+    expect(partRegisteredEvent.part_id.toNumber()).toEqual(0);
+    expect(partRegisteredEvent.sub_id).toEqual(expectedPartSubID);
   });
 
   test("should get part type correctly", async () => {
