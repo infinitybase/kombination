@@ -2,6 +2,7 @@ contract;
 
 use std::bytes::Bytes;
 use std::hash::{Hash, Hasher, sha256};
+use std::convert::Into;
 use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SRC7}};
 use sway_libs::{
     asset::{
@@ -28,6 +29,9 @@ use sway_libs::{
 };
 use std::{storage::storage_string::*, string::String};
 
+const PART_PREFIX: b256 = 0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc;
+const KOMBI_PREFIX: b256 = 0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620;
+
 configurable {
     INITIAL_OWNER: Address = Address::zero(),
     NAME: str[11] = __to_str_array("Kombination"),
@@ -43,23 +47,44 @@ enum PartType {
     SideStep: (),
 }
 
-impl Hash for PartType {
-    fn hash(self, ref mut state: Hasher) {
-        let value = match self {
+impl Into<u8> for PartType {
+    fn into(self) -> u8 {
+        match self {
             PartType::HeadLight => 0,
             PartType::Bumper => 1,
             PartType::Antenna => 2,
             PartType::Mirror => 3,
             PartType::Screens => 4,
             PartType::SideStep => 5,
-        };
-        value.hash(state);
+        }
     }
 }
 
 enum AssetType {
     Kombi: (),
     Part: PartType,
+}
+
+impl Hash for PartType {
+    fn hash(self, ref mut state: Hasher) {
+        let value: u8 = self.into();
+        value.hash(state);
+    }
+}
+
+impl Hash for AssetType {
+    fn hash(self, ref mut state: Hasher) {
+        match self {
+            AssetType::Kombi => {
+                "Kombi".hash(state);
+                0u8.hash(state);
+            },
+            AssetType::Part(part_type) => {
+                "Part".hash(state);
+                part_type.hash(state);
+            },
+        }
+    }
 }
 
 struct PartMetadata {
@@ -76,9 +101,6 @@ struct KombiTypeMetadata {
     image: String,
     uri: String,
 }
-
-const PART_PREFIX: b256 = 0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc;
-const KOMBI_PREFIX: b256 = 0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620;
 
 type PartSubId = b256;
 type KombiTypeSubId = b256;
@@ -106,6 +128,12 @@ struct KombiTypeRegisteredEvent {
     metadata: KombiTypeMetadata,
 }
 
+struct KombiMintedEvent {
+    kombi_id: KombiTypeSubId,
+    asset_id: AssetId,
+    recipient: Identity,
+}
+
 storage {
     asset {
         total_assets: u64 = 0,
@@ -114,6 +142,7 @@ storage {
         symbol: StorageMap<AssetId, StorageString> = StorageMap {},
         metadata: StorageMetadata = StorageMetadata {},
         asset_type: StorageMap<AssetId, AssetType> = StorageMap {},
+        total_assets_type: StorageMap<AssetType, u64> = StorageMap {},
     },
     parts {
         metadata: StorageMetadata = StorageMetadata {},
@@ -133,6 +162,9 @@ abi KombinationToken {
     fn mint_part(part_id: PartSubId, recipient: Identity);
 
     #[storage(read, write)]
+    fn mint_kombi(kombi_id: KombiTypeSubId, recipient: Identity);
+
+    #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata);
 
     #[storage(read, write)]
@@ -140,6 +172,12 @@ abi KombinationToken {
 
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType>;
+
+    #[storage(read)]
+    fn get_asset_type(asset_id: AssetId) -> Option<AssetType>;
+
+    #[storage(read)]
+    fn get_total_assets_type(asset_type: AssetType) -> u64;
 }
 
 impl KombinationToken for Contract {
@@ -158,11 +196,6 @@ impl KombinationToken for Contract {
             "Part not registered"
         );
 
-        storage::asset.asset_type.insert(
-            asset_id, 
-            AssetType::Part(part_type.unwrap())
-        );
-
         _mint(
             storage::asset.total_assets,
             storage::asset.total_supply,
@@ -171,8 +204,48 @@ impl KombinationToken for Contract {
             1,
         );
 
+        let total_assets_type = storage::asset.total_assets_type.get(AssetType::Part(part_type.unwrap())).try_read().unwrap_or(0);
+        storage::asset.total_assets_type.insert(AssetType::Part(part_type.unwrap()), total_assets_type + 1);
+
+        storage::asset.asset_type.insert(
+            asset_id, 
+            AssetType::Part(part_type.unwrap())
+        );
+
         log(PartMintedEvent {
             part_id,
+            asset_id,
+            recipient,
+        });
+    }
+
+    #[storage(read, write)]
+    fn mint_kombi(kombi_id: KombiTypeSubId, recipient: Identity) {
+        // TODO: Only admin can mint kombi
+        let total_assets = storage::asset.total_assets.read();
+        let sub_id = sha256((kombi_id, total_assets));
+        let asset_id = AssetId::new(ContractId::zero(), sub_id);
+
+        require(
+            storage::asset.total_supply.get(asset_id).try_read().is_none(),
+            "Kombi already minted"
+        );
+
+        let asset_id = _mint(
+            storage::asset.total_assets,
+            storage::asset.total_supply,
+            recipient,
+            sub_id,
+            1,
+        );
+
+        storage::asset.asset_type.insert(asset_id, AssetType::Kombi);
+
+        let total_assets_type = storage::asset.total_assets_type.get(AssetType::Kombi).try_read().unwrap_or(0);
+        storage::asset.total_assets_type.insert(AssetType::Kombi, total_assets_type + 1);
+
+        log(KombiMintedEvent {
+            kombi_id,
             asset_id,
             recipient,
         });
@@ -288,6 +361,16 @@ impl KombinationToken for Contract {
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType> {
         storage::parts.part_type.get(part_id).try_read()
+    }
+
+    #[storage(read)]
+    fn get_asset_type(asset_id: AssetId) -> Option<AssetType> {
+        storage::asset.asset_type.get(asset_id).try_read()
+    }
+
+    #[storage(read)]
+    fn get_total_assets_type(asset_type: AssetType) -> u64 {
+        storage::asset.total_assets_type.get(asset_type).try_read().unwrap_or(0)
     }
 }
 

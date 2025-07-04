@@ -46,4 +46,12 @@ export const AssetId = {
       bits,
     };
   },
+  fromBits: (value: { bits: string }) => {
+    return value.bits;
+  },
+  toBits: (value: string) => {
+    return {
+      bits: value,
+    };
+  },
 };

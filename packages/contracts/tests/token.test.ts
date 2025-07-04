@@ -1,12 +1,19 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
-import { KombinationTokenFactory } from "../src";
+import { KombinationTokenFactory, AssetType } from "../src";
 import { Address, AssetId, callAndWait, get, Identity } from "./utils";
 import {
   PartTypeInput,
   PartTypeOutput,
 } from "../src/artifacts/contracts/KombinationToken";
-import { B256Coder, BigNumberCoder, sha256, TupleCoder } from "fuels";
+import {
+  Address as FuelAddress,
+  B256Coder,
+  BigNumberCoder,
+  Contract,
+  sha256,
+  TupleCoder,
+} from "fuels";
 
 const PART_PREFIX =
   "0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc";
@@ -46,6 +53,22 @@ class PartSubIDCoder {
   }
 }
 
+class KombiAssetIDCoder {
+  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
+
+  constructor() {
+    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
+  }
+
+  encode(kombiTypeId: string, subId: number) {
+    return this.coder.encode([kombiTypeId, subId]);
+  }
+
+  encodeSha256(kombiTypeId: string, subId: number) {
+    return sha256(this.encode(kombiTypeId, subId));
+  }
+}
+
 const setup = async () => {
   const node = await launchTestNode();
 
@@ -73,6 +96,7 @@ const setup = async () => {
 describe("KombinationToken", async () => {
   const partSubIDCoder = new PartSubIDCoder();
   const kombiTypeSubIDCoder = new KombiTypeSubIDCoder();
+  const kombiAssetIDCoder = new KombiAssetIDCoder();
 
   let testSetup: Awaited<ReturnType<typeof setup>>;
 
@@ -138,6 +162,57 @@ describe("KombinationToken", async () => {
     expect(partType).toBeUndefined;
   });
 
+  test("should mint kombi correctly", async () => {
+    const { contract, wallet } = testSetup;
+
+    const kombiId = kombiTypeSubIDCoder.encodeSha256(0);
+    const result = await callAndWait(
+      contract.functions.mint_kombi(kombiId, Identity.address(wallet)),
+    );
+    const assetSubID = kombiAssetIDCoder.encodeSha256(kombiId, 0);
+    const expectedAssetId = AssetId.new(contract, assetSubID);
+    const mintedEvent = result.logs[result.logs.length - 1];
+
+    expect(mintedEvent.kombi_id).toEqual(kombiId);
+    expect(AssetId.fromBits(mintedEvent.asset_id)).toEqual(expectedAssetId);
+
+    const balance = await wallet.getBalance(
+      AssetId.fromBits(mintedEvent.asset_id),
+    );
+    expect(balance.toString()).toBe("1");
+
+    const assetType = await get(
+      contract.functions.get_asset_type(AssetId.toBits(expectedAssetId)),
+    );
+
+    // @ts-expect-error: assetType of Kombi always return a string
+    expect(assetType).toEqual("Kombi");
+
+    const totalKombis = await get(
+      contract.functions.get_total_assets_type({ Kombi: undefined }),
+    );
+    expect(totalKombis.toNumber()).toBe(1);
+  });
+
+  test("should mint kombi with same id correctly", async () => {
+    const { contract, wallet } = testSetup;
+
+    const kombiId = kombiTypeSubIDCoder.encodeSha256(0);
+    await callAndWait(
+      contract.functions.mint_kombi(kombiId, Identity.address(wallet)),
+    );
+    const assetSubID = kombiAssetIDCoder.encodeSha256(kombiId, 1);
+    const expectedAssetId = AssetId.new(contract, assetSubID);
+
+    const balance = await wallet.getBalance(expectedAssetId);
+    expect(balance.toString()).toBe("1");
+
+    const totalKombis = await get(
+      contract.functions.get_total_assets_type({ Kombi: undefined }),
+    );
+    expect(totalKombis.toNumber()).toBe(2);
+  });
+
   test("should mint part correctly", async () => {
     const { contract, wallet } = testSetup;
     const subId = partSubIDCoder.encodeSha256(0);
@@ -149,6 +224,20 @@ describe("KombinationToken", async () => {
     const mintedAssetId = AssetId.new(contract, subId);
     const balance = await wallet.getBalance(mintedAssetId);
     expect(balance.toString()).toBe("1");
+
+    const assetType = await get(
+      contract.functions.get_asset_type(AssetId.toBits(mintedAssetId)),
+    );
+
+    // @ts-expect-error: assetType of Part always return a string
+    expect(assetType).toEqual({ Part: "Antenna" });
+
+    const totalParts = await get(
+      contract.functions.get_total_assets_type({
+        Part: PartTypeInput.Antenna,
+      }),
+    );
+    expect(totalParts.toNumber()).toBe(1);
   });
 
   test("should not mint part twice", async () => {
