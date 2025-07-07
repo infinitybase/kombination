@@ -38,6 +38,10 @@ configurable {
     SYMBOL: str[3] = __to_str_array("KMB"),
 }
 
+/// TYPES
+type PartSubId = b256;
+type KombiTypeSubId = b256;
+
 enum PartType {
     HeadLight: (),
     Bumper: (),
@@ -47,6 +51,27 @@ enum PartType {
     SideStep: (),
 }
 
+enum AssetType {
+    Kombi: (),
+    Part: PartType,
+}
+
+struct PartMetadata {
+    kombi_type_id: KombiTypeSubId,
+    bg_image: String,
+    image: String,
+    uri: String,
+}
+
+struct KombiTypeMetadata {
+    name: String,
+    description: String,
+    bg_image: String,
+    image: String,
+    uri: String,
+}
+
+/// IMPLEMENTATIONS
 impl Into<u8> for PartType {
     fn into(self) -> u8 {
         match self {
@@ -58,11 +83,6 @@ impl Into<u8> for PartType {
             PartType::SideStep => 5,
         }
     }
-}
-
-enum AssetType {
-    Kombi: (),
-    Part: PartType,
 }
 
 impl Hash for PartType {
@@ -87,28 +107,12 @@ impl Hash for AssetType {
     }
 }
 
-struct PartMetadata {
-    kombi_type_id: KombiTypeSubId,
-    bg_image: String,
-    image: String,
-    uri: String,
-}
-
-struct KombiTypeMetadata {
-    name: String,
-    description: String,
-    bg_image: String,
-    image: String,
-    uri: String,
-}
-
-type PartSubId = b256;
-type KombiTypeSubId = b256;
-
+/// UTILS
 fn part_sub_id(part_id: u64) -> PartSubId {
     sha256((PART_PREFIX, part_id))
 }
 
+/// EVENTS
 struct PartRegisteredEvent {
     part_id: u64,
     sub_id: PartSubId,
@@ -138,9 +142,9 @@ storage {
     asset {
         total_assets: u64 = 0,
         total_supply: StorageMap<AssetId, u64> = StorageMap {},
+        asset_sub_id: StorageMap<AssetId, SubId> = StorageMap {},
         name: StorageMap<AssetId, StorageString> = StorageMap {},
         symbol: StorageMap<AssetId, StorageString> = StorageMap {},
-        metadata: StorageMetadata = StorageMetadata {},
         asset_type: StorageMap<AssetId, AssetType> = StorageMap {},
         total_assets_type: StorageMap<AssetType, u64> = StorageMap {},
     },
@@ -206,6 +210,7 @@ impl KombinationToken for Contract {
 
         let total_assets_type = storage::asset.total_assets_type.get(AssetType::Part(part_type.unwrap())).try_read().unwrap_or(0);
         storage::asset.total_assets_type.insert(AssetType::Part(part_type.unwrap()), total_assets_type + 1);
+        storage::asset.asset_sub_id.insert(asset_id, part_id);
 
         storage::asset.asset_type.insert(
             asset_id, 
@@ -240,6 +245,7 @@ impl KombinationToken for Contract {
         );
 
         storage::asset.asset_type.insert(asset_id, AssetType::Kombi);
+        storage::asset.asset_sub_id.insert(asset_id, kombi_id);
 
         let total_assets_type = storage::asset.total_assets_type.get(AssetType::Kombi).try_read().unwrap_or(0);
         storage::asset.total_assets_type.insert(AssetType::Kombi, total_assets_type + 1);
@@ -271,22 +277,28 @@ impl KombinationToken for Contract {
 
         let asset_id = AssetId::new(ContractId::zero(), sub_id);
         _set_metadata(
-            storage::asset.metadata, 
+            storage::parts.metadata, 
             asset_id, 
             String::from_ascii_str("bg_image"), 
             Metadata::String(metadata.bg_image)
         );
         _set_metadata(
-            storage::asset.metadata, 
+            storage::parts.metadata, 
             asset_id, 
             String::from_ascii_str("image"), 
             Metadata::String(metadata.image)
         );
         _set_metadata(
-            storage::asset.metadata, 
+            storage::parts.metadata, 
             asset_id, 
             String::from_ascii_str("uri"), 
             Metadata::String(metadata.uri)
+        );
+        _set_metadata(
+            storage::parts.metadata, 
+            asset_id, 
+            String::from_ascii_str("kombi_type_id"), 
+            Metadata::B256(metadata.kombi_type_id)
         );
 
         storage::parts.part_kombi_type.insert(sub_id, metadata.kombi_type_id);
@@ -410,7 +422,32 @@ impl SRC20 for Contract {
 impl SRC7 for Contract {
     #[storage(read)]
     fn metadata(asset: AssetId, key: String) -> Option<Metadata> {
-        storage::asset.metadata.get(asset, key)
+        let sub_id = match storage::asset.asset_sub_id.get(asset).try_read() {
+            Some(sub_id) => sub_id,
+            None => return None,
+        };
+
+        log(sub_id);
+
+        let asset_type = match storage::asset.asset_type.get(asset).try_read() {
+            Some(asset_type) => asset_type,
+            None => return None,
+        };
+
+        log(asset_type);
+
+        let asset_id = AssetId::new(ContractId::zero(), sub_id);
+
+        log(asset_id);
+
+        match asset_type {
+            AssetType::Part(_) => {
+                _metadata(storage::parts.metadata, asset_id, key)
+            }
+            AssetType::Kombi => {
+                _metadata(storage::kombi.metadata, asset_id, key)
+            }
+        }       
     }
 }
 

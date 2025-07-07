@@ -1,73 +1,31 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
-import { KombinationTokenFactory, AssetType } from "../src";
+import {
+  KombinationTokenFactory,
+  PartSubIDCoder,
+  KombiTypeSubIDCoder,
+  KombiAssetIDCoder,
+} from "../src";
 import { Address, AssetId, callAndWait, get, Identity } from "./utils";
 import {
   PartTypeInput,
   PartTypeOutput,
 } from "../src/artifacts/contracts/KombinationToken";
-import {
-  Address as FuelAddress,
-  B256Coder,
-  BigNumberCoder,
-  Contract,
-  sha256,
-  TupleCoder,
-} from "fuels";
 
-const PART_PREFIX =
-  "0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae95d9acdb77cc";
+const KOMBI_METADATA = {
+  bg_image: "https://example.com",
+  image: "https://example.com",
+  uri: "https://example.com/1.json",
+  name: "Kombi Type 1",
+  description: "Kombi Type 1 Description",
+};
 
-const KOMBI_PREFIX =
-  "0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620";
-
-class KombiTypeSubIDCoder {
-  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
-
-  constructor() {
-    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
-  }
-
-  encode(kombiTypeId: number) {
-    return this.coder.encode([KOMBI_PREFIX, kombiTypeId]);
-  }
-
-  encodeSha256(kombiTypeId: number) {
-    return sha256(this.encode(kombiTypeId));
-  }
-}
-
-class PartSubIDCoder {
-  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
-
-  constructor() {
-    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
-  }
-
-  encode(partId: number) {
-    return this.coder.encode([PART_PREFIX, partId]);
-  }
-
-  encodeSha256(partId: number) {
-    return sha256(this.encode(partId));
-  }
-}
-
-class KombiAssetIDCoder {
-  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
-
-  constructor() {
-    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
-  }
-
-  encode(kombiTypeId: string, subId: number) {
-    return this.coder.encode([kombiTypeId, subId]);
-  }
-
-  encodeSha256(kombiTypeId: string, subId: number) {
-    return sha256(this.encode(kombiTypeId, subId));
-  }
-}
+const PART_METADATA = {
+  bg_image: "https://example.com",
+  image: "https://example.com",
+  uri: "https://example.com/1.json",
+  kombi_type_id: undefined,
+};
 
 const setup = async () => {
   const node = await launchTestNode();
@@ -112,13 +70,7 @@ describe("KombinationToken", async () => {
     const { contract } = testSetup;
 
     const result = await callAndWait(
-      contract.functions.register_kombi_type({
-        bg_image: "https://example.com",
-        image: "https://example.com",
-        uri: "https://example.com/1.json",
-        name: "Kombi Type 1",
-        description: "Kombi Type 1 Description",
-      }),
+      contract.functions.register_kombi_type(KOMBI_METADATA),
     );
 
     const registeredEvent = result.logs[result.logs.length - 1];
@@ -134,9 +86,7 @@ describe("KombinationToken", async () => {
     const kombiTypeSubID = kombiTypeSubIDCoder.encodeSha256(0);
     const result = await callAndWait(
       contract.functions.register_part(PartTypeInput.Antenna, {
-        bg_image: "https://example.com",
-        image: "https://example.com",
-        uri: "https://example.com/1.json",
+        ...PART_METADATA,
         kombi_type_id: kombiTypeSubID,
       }),
     );
@@ -260,6 +210,33 @@ describe("KombinationToken", async () => {
         contract.functions.mint_part(subId, Identity.address(wallet)),
       ),
     ).rejects.toThrow("Part not registered");
+  });
+
+  test("should get metadata correctly", async () => {
+    const { contract } = testSetup;
+
+    const kombiId = kombiTypeSubIDCoder.encodeSha256(0);
+    const kombiSubId = kombiAssetIDCoder.encodeSha256(kombiId, 0);
+    const kombiAssetId = AssetId.bits(contract, kombiSubId);
+
+    for (const key of Object.keys(KOMBI_METADATA)) {
+      const metadata = await get(
+        contract.functions.metadata(kombiAssetId, key),
+      );
+      expect(metadata?.String).toBe(KOMBI_METADATA[key]);
+    }
+
+    const partSubId = partSubIDCoder.encodeSha256(0);
+    const partAssetId = AssetId.bits(contract, partSubId);
+    const partMetadata = {
+      ...PART_METADATA,
+      kombi_type_id: kombiId,
+    };
+
+    for (const key of Object.keys(partMetadata)) {
+      const metadata = await get(contract.functions.metadata(partAssetId, key));
+      expect(metadata?.String ?? metadata?.B256).toBe(partMetadata[key]);
+    }
   });
 
   test("should execute SRC20 methods correctly", async () => {
