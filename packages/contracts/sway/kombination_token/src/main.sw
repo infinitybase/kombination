@@ -147,6 +147,13 @@ struct PartAttachedToKombiEvent {
     owner: Identity,
 }
 
+struct PartDetachedFromKombiEvent {
+    part_id: PartSubId,
+    kombi_id: KombiTypeSubId,
+    part_type: PartType,
+    owner: Identity,
+}
+
 storage {
     asset {
         total_assets: u64 = 0,
@@ -189,6 +196,9 @@ abi KombinationToken {
 
     #[storage(read, write), payable]
     fn attach_part(kombi_asset_id: AssetId);
+
+    #[storage(read, write), payable]
+    fn detach_part(part_asset_id: AssetId);
 
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType>;
@@ -406,21 +416,28 @@ impl KombinationToken for Contract {
         }
 
         // Get the kombi type from the asset_sub_id
-        let kombi_sub_id = storage::asset.asset_sub_id.get(kombi_asset_id).try_read();
-        require(kombi_sub_id.is_some(), "Kombi sub ID not found");
-        let kombi_type_id = kombi_sub_id.unwrap();
-
-        // Check if we received exactly one asset in this transaction
-        let received_assets = msg_asset_id();
-        let received_amount = msg_amount();
+        let kombi_type_id = match storage::asset.asset_sub_id.get(kombi_asset_id).try_read() {
+            Some(sub_id) => sub_id,
+            None => {
+                require(false, "Kombi sub ID not found");
+                return;
+            }
+        };
         
-        require(received_amount == 1, "Must send exactly 1 part token");
+        require(msg_amount() == 1, "Must send exactly 1 part token");
+
+        let received_asset = msg_asset_id();
 
         // Verify that the received asset is a part
-        let part_asset_type = storage::asset.asset_type.get(received_assets).try_read();
-        require(part_asset_type.is_some(), "Received asset is not registered");
+        let part_asset_type = match storage::asset.asset_type.get(received_asset).try_read() {
+            Some(asset_type) => asset_type,
+            None => {
+                require(false, "Received asset is not registered");
+                return;
+            }
+        };
 
-        let part_type = match part_asset_type.unwrap() {
+        let part_type = match part_asset_type {
             AssetType::Part(part_type) => part_type,
             AssetType::Kombi => {
                 require(false, "Cannot attach a kombi to another kombi");
@@ -429,25 +446,37 @@ impl KombinationToken for Contract {
         };
 
         // Get the part's sub_id to check compatibility
-        let part_sub_id = storage::asset.asset_sub_id.get(received_assets).try_read();
-        require(part_sub_id.is_some(), "Part sub ID not found");
-        let part_sub_id = part_sub_id.unwrap();
+        let part_sub_id = match storage::asset.asset_sub_id.get(received_asset).try_read() {
+            Some(sub_id) => sub_id,
+            None => {
+                require(false, "Part sub ID not found");
+                return;
+            }
+        };
 
         // Check if this part is compatible with the kombi type
-        let part_kombi_type = storage::parts.part_kombi_type.get(part_sub_id).try_read();
-        require(part_kombi_type.is_some(), "Part kombi type not found");
-        require(
-            part_kombi_type.unwrap() == kombi_type_id,
-            "Part is not compatible with this kombi type"
-        );
+        let part_kombi_type = match storage::parts.part_kombi_type.get(part_sub_id).try_read() {
+            Some(part_kombi_type) => {
+                require(part_kombi_type == kombi_type_id, "Part is not compatible with this kombi type");
+                part_kombi_type
+            },
+            None => {
+                require(false, "Part kombi type not found");
+                return;
+            }
+        };
 
         // Check if the kombi already has a part of this type
-        let existing_part = storage::kombi.kombi_parts.get(kombi_type_id).get(part_type).try_read();
-        require(existing_part.is_none(), "Kombi already has a part of this type");
+        require(
+            storage::kombi.kombi_parts.get(kombi_type_id).get(part_type).try_read().is_none(), 
+            "Kombi already has a part of this type"
+        );
 
         // Check if the part is already attached to another kombi
-        let part_attachment = storage::kombi.part_attached_to_kombi.get(part_sub_id).try_read();
-        require(part_attachment.is_none(), "Part is already attached to another kombi");
+        require(
+            storage::kombi.part_attached_to_kombi.get(part_sub_id).try_read().is_none(), 
+            "Part is already attached to another kombi"
+        );
 
         // Burn the part token by removing it from total supply
         _burn(storage::asset.total_supply, part_sub_id, 1);
@@ -460,6 +489,70 @@ impl KombinationToken for Contract {
         log(PartAttachedToKombiEvent {
             part_id: part_sub_id,
             kombi_id: kombi_type_id,
+            part_type,
+            owner: msg_sender().unwrap(),
+        });
+    }
+
+    #[storage(read, write), payable]
+    fn detach_part(part_asset_id: AssetId) {
+        require(msg_amount() == 1, "Must send exactly 1 kombi token");
+
+        let part_asset_type = storage::asset.asset_type.get(part_asset_id).try_read();
+        require(part_asset_type.is_some(), "Part does not exist");
+
+        match part_asset_type.unwrap() {
+            AssetType::Part(_) => {},
+            AssetType::Kombi => {
+                require(false, "Cannot detach a kombi from a kombi");
+                return;
+            }
+        }
+
+        let part_sub_id = match storage::asset.asset_sub_id.get(part_asset_id).try_read() {
+            Some(sub_id) => sub_id,
+            None => {
+                require(false, "Part sub ID not found");
+                return;
+            }
+        };
+
+        let part_type = match storage::parts.part_type.get(part_sub_id).try_read() {
+            Some(part_type) => part_type,
+            None => {
+                require(false, "Part type not found");
+                return;
+            }
+        };
+
+        let kombi_sub_id = match storage::kombi.part_attached_to_kombi.get(part_sub_id).try_read() {
+            Some(kombi_asset_id) => {
+                require(kombi_asset_id == msg_asset_id(), "Part is not attached to this kombi");
+                storage::asset.asset_sub_id.get(kombi_asset_id).try_read().unwrap()
+            },
+            None => {
+                require(false, "Part is not attached to a kombi");
+                return;
+            }
+        };
+
+        // Detach the part from the kombi
+        storage::kombi.kombi_parts.get(kombi_sub_id).remove(part_type);
+        storage::kombi.part_attached_to_kombi.remove(part_sub_id);
+
+        // Mint the part back to the user
+        _mint(
+            storage::asset.total_assets,
+            storage::asset.total_supply,
+            msg_sender().unwrap(),
+            part_sub_id,
+            1,
+        );
+
+        // Log the event
+        log(PartDetachedFromKombiEvent {
+            part_id: part_sub_id,
+            kombi_id: kombi_sub_id,
             part_type,
             owner: msg_sender().unwrap(),
         });

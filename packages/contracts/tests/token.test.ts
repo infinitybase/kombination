@@ -261,7 +261,7 @@ describe("KombinationToken - Asset", async () => {
   });
 });
 
-describe(" KombinationToken - Part Attachment", async () => {
+describe("KombinationToken - Part Attachment", async () => {
   let testSetup: Awaited<ReturnType<typeof setup>>;
 
   const kombiIds = [
@@ -271,8 +271,12 @@ describe(" KombinationToken - Part Attachment", async () => {
 
   const partIds = [
     partSubIDCoder.encodeSha256(Part.Antenna, 0),
+    partSubIDCoder.encodeSha256(Part.Antenna, 1),
     partSubIDCoder.encodeSha256(Part.Bumper, 0),
   ];
+
+  let kombiAssetIds: string[] = [];
+  let partAssetIds: string[] = [];
 
   beforeAll(async () => {
     testSetup = await setup();
@@ -280,6 +284,13 @@ describe(" KombinationToken - Part Attachment", async () => {
 
     await callAndWait(contract.functions.register_kombi_type(KOMBI_METADATA));
     await callAndWait(contract.functions.register_kombi_type(KOMBI_METADATA));
+
+    await callAndWait(
+      contract.functions.register_part(PartTypeInput.Antenna, {
+        ...PART_METADATA,
+        kombi_type_id: kombiIds[0],
+      }),
+    );
     await callAndWait(
       contract.functions.register_part(PartTypeInput.Antenna, {
         ...PART_METADATA,
@@ -293,19 +304,21 @@ describe(" KombinationToken - Part Attachment", async () => {
       }),
     );
 
-    await callAndWait(
-      contract.functions.mint_part(partIds[0], Identity.address(wallet)),
+    const batchPartMint = partIds.map((id) =>
+      contract.functions.mint_part(id, Identity.address(wallet)),
     );
-    await callAndWait(
-      contract.functions.mint_part(partIds[1], Identity.address(wallet)),
-    );
-    await callAndWait(
-      contract.functions.mint_kombi(kombiIds[0], Identity.address(wallet)),
-    );
+    await callAndWait(contract.multiCall(batchPartMint));
 
-    await callAndWait(
-      contract.functions.mint_kombi(kombiIds[1], Identity.address(wallet)),
+    const batchKombiMint = kombiIds.map((id) =>
+      contract.functions.mint_kombi(id, Identity.address(wallet)),
     );
+    await callAndWait(contract.multiCall(batchKombiMint));
+
+    kombiAssetIds = kombiIds.map((id) => {
+      const subId = kombiAssetIDCoder.encodeSha256(id, 0);
+      return AssetId.new(testSetup.contract, subId);
+    });
+    partAssetIds = partIds.map((id) => AssetId.new(testSetup.contract, id));
   });
 
   afterAll(async () => {
@@ -315,11 +328,10 @@ describe(" KombinationToken - Part Attachment", async () => {
   test("should attach part to kombi correctly", async () => {
     const { contract, wallet } = testSetup;
 
-    const kombiSubId = kombiAssetIDCoder.encodeSha256(kombiIds[0], 0);
-    const kombiAssetId = AssetId.bits(contract, kombiSubId);
-    const partAssetId = AssetId.bits(contract, partIds[0]);
+    const kombiAssetId = AssetId.toBits(kombiAssetIds[0]);
+    const partAssetId = AssetId.toBits(partAssetIds[0]);
 
-    await callAndWait(
+    const { logs } = await callAndWait(
       contract.functions.attach_part(kombiAssetId).callParams({
         forward: {
           amount: 1,
@@ -328,15 +340,37 @@ describe(" KombinationToken - Part Attachment", async () => {
       }),
     );
 
+    const partAttachedEvent = logs[logs.length - 1];
+    expect(partAttachedEvent.part_id).toEqual(partIds[0]);
+    expect(partAttachedEvent.kombi_id).toEqual(kombiIds[0]);
+    expect(partAttachedEvent.part_type).toEqual(PartTypeOutput.Antenna);
+    expect(partAttachedEvent.owner).toEqual(Identity.address(wallet));
+
     const balance = await wallet.getBalance(partAssetId.bits);
     expect(balance.toString()).toBe("0");
+
+    // On attachment, the part is burned and cannot be minted a new part again
+    await expect(
+      callAndWait(
+        contract.functions.mint_part(partIds[0], Identity.address(wallet)),
+      ),
+    ).rejects.toThrow("Part already minted");
+  });
+
+  test("should get part attached to kombi correctly", async () => {
+    const { contract } = testSetup;
+
+    const kombiAssetId = AssetId.toBits(kombiAssetIds[0]);
+    const partAssetId = AssetId.toBits(partAssetIds[0]);
 
     const partAttached = await get(
       contract.functions.is_part_attached_to_kombi(partAssetId),
     );
+
     if (!partAttached) {
       throw new Error("Part not attached to kombi");
     }
+
     expect(AssetId.fromBits(partAttached)).toEqual(
       AssetId.fromBits(kombiAssetId),
     );
@@ -348,5 +382,81 @@ describe(" KombinationToken - Part Attachment", async () => {
       throw new Error("Kombi parts not found");
     }
     expect(AssetId.fromBits(kombiParts)).toEqual(AssetId.fromBits(partAssetId));
+  });
+
+  test("should error on attach part to wrong kombi type", async () => {
+    const { contract } = testSetup;
+
+    const kombiAssetId = AssetId.toBits(kombiAssetIds[0]);
+    const partAssetId = AssetId.toBits(partAssetIds[2]);
+
+    await expect(
+      callAndWait(
+        contract.functions.attach_part(kombiAssetId).callParams({
+          forward: {
+            amount: 1,
+            assetId: partAssetId.bits,
+          },
+        }),
+      ),
+    ).rejects.toThrow("Part is not compatible with this kombi type");
+
+    const partKombiType = await get(
+      contract.functions.metadata(partAssetId, "kombi_type_id"),
+    );
+    expect(partKombiType?.B256).toBe(kombiIds[1]);
+  });
+
+  test("should error on attach part when the kombi already has a part", async () => {
+    const { contract } = testSetup;
+
+    const kombiAssetId = AssetId.toBits(kombiAssetIds[0]);
+    const partAssetId = AssetId.toBits(partAssetIds[1]);
+
+    await expect(
+      callAndWait(
+        contract.functions.attach_part(kombiAssetId).callParams({
+          forward: {
+            amount: 1,
+            assetId: partAssetId.bits,
+          },
+        }),
+      ),
+    ).rejects.toThrow("Kombi already has a part");
+  });
+
+  test("should detach part from kombi correctly", async () => {
+    const { contract, wallet } = testSetup;
+
+    const kombiAssetId = AssetId.toBits(kombiAssetIds[0]);
+    const partAssetId = AssetId.toBits(partAssetIds[0]);
+
+    const { logs } = await callAndWait(
+      contract.functions.detach_part(partAssetId).callParams({
+        forward: {
+          amount: 1,
+          assetId: kombiAssetId.bits,
+        },
+      }),
+    );
+
+    const partDetachedEvent = logs[logs.length - 1];
+    expect(partDetachedEvent.part_id).toEqual(partIds[0]);
+    expect(partDetachedEvent.kombi_id).toEqual(kombiIds[0]);
+    expect(partDetachedEvent.part_type).toEqual(PartTypeOutput.Antenna);
+    expect(partDetachedEvent.owner).toEqual(Identity.address(wallet));
+
+    const balance = await wallet.getBalance(partAssetId.bits);
+    expect(balance.toString()).toBe("1");
+
+    const partAttached = await get(
+      contract.functions.is_part_attached_to_kombi(partAssetId),
+    );
+    expect(partAttached).toBeUndefined();
+
+    const kombiParts = await get(
+      contract.functions.get_kombi_parts(kombiAssetId, PartTypeInput.Antenna),
+    );
+    expect(kombiParts).toBeUndefined();
   });
 });
