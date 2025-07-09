@@ -5,6 +5,7 @@ import {
   PartSubIDCoder,
   KombiTypeSubIDCoder,
   KombiAssetIDCoder,
+  Part,
 } from "../src";
 import { Address, AssetId, callAndWait, get, Identity } from "./utils";
 import {
@@ -51,11 +52,11 @@ const setup = async () => {
   };
 };
 
-describe("KombinationToken", async () => {
-  const partSubIDCoder = new PartSubIDCoder();
-  const kombiTypeSubIDCoder = new KombiTypeSubIDCoder();
-  const kombiAssetIDCoder = new KombiAssetIDCoder();
+const kombiTypeSubIDCoder = new KombiTypeSubIDCoder();
+const partSubIDCoder = new PartSubIDCoder();
+const kombiAssetIDCoder = new KombiAssetIDCoder();
 
+describe("KombinationToken - Asset", async () => {
   let testSetup: Awaited<ReturnType<typeof setup>>;
 
   beforeAll(async () => {
@@ -92,7 +93,7 @@ describe("KombinationToken", async () => {
     );
 
     const partRegisteredEvent = result.logs[result.logs.length - 1];
-    const expectedPartSubID = partSubIDCoder.encodeSha256(0);
+    const expectedPartSubID = partSubIDCoder.encodeSha256(Part.Antenna, 0);
 
     expect(partRegisteredEvent.part_id.toNumber()).toEqual(0);
     expect(partRegisteredEvent.sub_id).toEqual(expectedPartSubID);
@@ -102,12 +103,16 @@ describe("KombinationToken", async () => {
     const { contract } = testSetup;
 
     let partType = await get(
-      contract.functions.get_part_type(partSubIDCoder.encodeSha256(0)),
+      contract.functions.get_part_type(
+        partSubIDCoder.encodeSha256(Part.Antenna, 0),
+      ),
     );
     expect(partType).toBe(PartTypeOutput.Antenna);
 
     partType = await get(
-      contract.functions.get_part_type(partSubIDCoder.encodeSha256(1)),
+      contract.functions.get_part_type(
+        partSubIDCoder.encodeSha256(Part.Antenna, 1),
+      ),
     );
     expect(partType).toBeUndefined;
   });
@@ -165,7 +170,7 @@ describe("KombinationToken", async () => {
 
   test("should mint part correctly", async () => {
     const { contract, wallet } = testSetup;
-    const subId = partSubIDCoder.encodeSha256(0);
+    const subId = partSubIDCoder.encodeSha256(Part.Antenna, 0);
 
     await callAndWait(
       contract.functions.mint_part(subId, Identity.address(wallet)),
@@ -192,7 +197,7 @@ describe("KombinationToken", async () => {
 
   test("should not mint part twice", async () => {
     const { contract, wallet } = testSetup;
-    const subId = partSubIDCoder.encodeSha256(0);
+    const subId = partSubIDCoder.encodeSha256(Part.Antenna, 0);
 
     await expect(
       callAndWait(
@@ -203,7 +208,7 @@ describe("KombinationToken", async () => {
 
   test("should not mint part not registered", async () => {
     const { contract, wallet } = testSetup;
-    const subId = partSubIDCoder.encodeSha256(100);
+    const subId = partSubIDCoder.encodeSha256(Part.Antenna, 100);
 
     await expect(
       callAndWait(
@@ -226,7 +231,7 @@ describe("KombinationToken", async () => {
       expect(metadata?.String).toBe(KOMBI_METADATA[key]);
     }
 
-    const partSubId = partSubIDCoder.encodeSha256(0);
+    const partSubId = partSubIDCoder.encodeSha256(Part.Antenna, 0);
     const partAssetId = AssetId.bits(contract, partSubId);
     const partMetadata = {
       ...PART_METADATA,
@@ -242,7 +247,7 @@ describe("KombinationToken", async () => {
   test("should execute SRC20 methods correctly", async () => {
     const { contract, configurables } = testSetup;
 
-    const subId = partSubIDCoder.encodeSha256(0);
+    const subId = partSubIDCoder.encodeSha256(Part.Antenna, 0);
     const assetId = AssetId.bits(contract, subId);
 
     const name = await get(contract.functions.name(assetId));
@@ -253,5 +258,95 @@ describe("KombinationToken", async () => {
 
     const decimals = await get(contract.functions.decimals(assetId));
     expect(decimals).toBe(0);
+  });
+});
+
+describe(" KombinationToken - Part Attachment", async () => {
+  let testSetup: Awaited<ReturnType<typeof setup>>;
+
+  const kombiIds = [
+    kombiTypeSubIDCoder.encodeSha256(0),
+    kombiTypeSubIDCoder.encodeSha256(1),
+  ];
+
+  const partIds = [
+    partSubIDCoder.encodeSha256(Part.Antenna, 0),
+    partSubIDCoder.encodeSha256(Part.Bumper, 0),
+  ];
+
+  beforeAll(async () => {
+    testSetup = await setup();
+    const { contract, wallet } = testSetup;
+
+    await callAndWait(contract.functions.register_kombi_type(KOMBI_METADATA));
+    await callAndWait(contract.functions.register_kombi_type(KOMBI_METADATA));
+    await callAndWait(
+      contract.functions.register_part(PartTypeInput.Antenna, {
+        ...PART_METADATA,
+        kombi_type_id: kombiIds[0],
+      }),
+    );
+    await callAndWait(
+      contract.functions.register_part(PartTypeInput.Bumper, {
+        ...PART_METADATA,
+        kombi_type_id: kombiIds[1],
+      }),
+    );
+
+    await callAndWait(
+      contract.functions.mint_part(partIds[0], Identity.address(wallet)),
+    );
+    await callAndWait(
+      contract.functions.mint_part(partIds[1], Identity.address(wallet)),
+    );
+    await callAndWait(
+      contract.functions.mint_kombi(kombiIds[0], Identity.address(wallet)),
+    );
+
+    await callAndWait(
+      contract.functions.mint_kombi(kombiIds[1], Identity.address(wallet)),
+    );
+  });
+
+  afterAll(async () => {
+    testSetup.cleanup();
+  });
+
+  test("should attach part to kombi correctly", async () => {
+    const { contract, wallet } = testSetup;
+
+    const kombiSubId = kombiAssetIDCoder.encodeSha256(kombiIds[0], 0);
+    const kombiAssetId = AssetId.bits(contract, kombiSubId);
+    const partAssetId = AssetId.bits(contract, partIds[0]);
+
+    await callAndWait(
+      contract.functions.attach_part(kombiAssetId).callParams({
+        forward: {
+          amount: 1,
+          assetId: partAssetId.bits,
+        },
+      }),
+    );
+
+    const balance = await wallet.getBalance(partAssetId.bits);
+    expect(balance.toString()).toBe("0");
+
+    const partAttached = await get(
+      contract.functions.is_part_attached_to_kombi(partAssetId),
+    );
+    if (!partAttached) {
+      throw new Error("Part not attached to kombi");
+    }
+    expect(AssetId.fromBits(partAttached)).toEqual(
+      AssetId.fromBits(kombiAssetId),
+    );
+
+    const kombiParts = await get(
+      contract.functions.get_kombi_parts(kombiAssetId, PartTypeInput.Antenna),
+    );
+    if (!kombiParts) {
+      throw new Error("Kombi parts not found");
+    }
+    expect(AssetId.fromBits(kombiParts)).toEqual(AssetId.fromBits(partAssetId));
   });
 });

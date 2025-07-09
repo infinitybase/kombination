@@ -1,12 +1,14 @@
 contract;
 
 use std::bytes::Bytes;
+use std::context::msg_amount;
+use std::call_frames::msg_asset_id;
 use std::hash::{Hash, Hasher, sha256};
 use std::convert::Into;
 use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SRC7}};
 use sway_libs::{
     asset::{
-        supply::_mint,
+        supply::{_burn, _mint},
         base::{
             _name,
             _symbol,
@@ -138,6 +140,13 @@ struct KombiMintedEvent {
     recipient: Identity,
 }
 
+struct PartAttachedToKombiEvent {
+    part_id: PartSubId,
+    kombi_id: KombiTypeSubId,
+    part_type: PartType,
+    owner: Identity,
+}
+
 storage {
     asset {
         total_assets: u64 = 0,
@@ -158,6 +167,10 @@ storage {
         total_types: u64 = 0,
         kombi_type: StorageMap<KombiTypeSubId, bool> = StorageMap {},
         metadata: StorageMetadata = StorageMetadata {},
+        // Track which parts are attached to each kombi
+        kombi_parts: StorageMap<KombiTypeSubId, StorageMap<PartType, PartSubId>> = StorageMap {},
+        // Track which kombi a part belongs to (if any)
+        part_attached_to_kombi: StorageMap<PartSubId, AssetId> = StorageMap {},
     }
 }
 
@@ -174,6 +187,9 @@ abi KombinationToken {
     #[storage(read, write)]
     fn register_kombi_type(metadata: KombiTypeMetadata);
 
+    #[storage(read, write), payable]
+    fn attach_part(kombi_asset_id: AssetId);
+
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType>;
 
@@ -182,6 +198,12 @@ abi KombinationToken {
 
     #[storage(read)]
     fn get_total_assets_type(asset_type: AssetType) -> u64;
+
+    #[storage(read)]
+    fn get_kombi_parts(kombi_asset_id: AssetId, part_type: PartType) -> Option<AssetId>;
+
+    #[storage(read)]
+    fn is_part_attached_to_kombi(part_asset_id: AssetId) -> Option<AssetId>;
 }
 
 impl KombinationToken for Contract {
@@ -227,7 +249,7 @@ impl KombinationToken for Contract {
     #[storage(read, write)]
     fn mint_kombi(kombi_id: KombiTypeSubId, recipient: Identity) {
         // TODO: Only admin can mint kombi
-        let total_assets = storage::asset.total_assets.read();
+        let total_assets = storage::asset.total_assets_type.get(AssetType::Kombi).try_read().unwrap_or(0);
         let sub_id = sha256((kombi_id, total_assets));
         let asset_id = AssetId::new(ContractId::zero(), sub_id);
 
@@ -261,7 +283,7 @@ impl KombinationToken for Contract {
     fn register_part(part: PartType, metadata: PartMetadata) {
         // TODO: Only admin can register parts
         let part_id = storage::parts.total_parts.get(part).try_read().unwrap_or(0);
-        let sub_id = part_sub_id(part_id);
+        let sub_id = sha256((PART_PREFIX, part, part_id));
 
         require(
             storage::parts.part_type.get(sub_id).try_read().is_none(), 
@@ -370,6 +392,79 @@ impl KombinationToken for Contract {
         });
     }
 
+    #[storage(read, write), payable]
+    fn attach_part(kombi_asset_id: AssetId) {
+        // Verify that the kombi exists and is valid
+        let kombi_asset_type = storage::asset.asset_type.get(kombi_asset_id).try_read();
+        require(kombi_asset_type.is_some(), "Kombi does not exist");
+        
+        match kombi_asset_type.unwrap() {
+            AssetType::Kombi => {},
+            _ => {
+                require(false, "Provided asset is not a kombi");
+            }
+        }
+
+        // Get the kombi type from the asset_sub_id
+        let kombi_sub_id = storage::asset.asset_sub_id.get(kombi_asset_id).try_read();
+        require(kombi_sub_id.is_some(), "Kombi sub ID not found");
+        let kombi_type_id = kombi_sub_id.unwrap();
+
+        // Check if we received exactly one asset in this transaction
+        let received_assets = msg_asset_id();
+        let received_amount = msg_amount();
+        
+        require(received_amount == 1, "Must send exactly 1 part token");
+
+        // Verify that the received asset is a part
+        let part_asset_type = storage::asset.asset_type.get(received_assets).try_read();
+        require(part_asset_type.is_some(), "Received asset is not registered");
+
+        let part_type = match part_asset_type.unwrap() {
+            AssetType::Part(part_type) => part_type,
+            AssetType::Kombi => {
+                require(false, "Cannot attach a kombi to another kombi");
+                return;
+            }
+        };
+
+        // Get the part's sub_id to check compatibility
+        let part_sub_id = storage::asset.asset_sub_id.get(received_assets).try_read();
+        require(part_sub_id.is_some(), "Part sub ID not found");
+        let part_sub_id = part_sub_id.unwrap();
+
+        // Check if this part is compatible with the kombi type
+        let part_kombi_type = storage::parts.part_kombi_type.get(part_sub_id).try_read();
+        require(part_kombi_type.is_some(), "Part kombi type not found");
+        require(
+            part_kombi_type.unwrap() == kombi_type_id,
+            "Part is not compatible with this kombi type"
+        );
+
+        // Check if the kombi already has a part of this type
+        let existing_part = storage::kombi.kombi_parts.get(kombi_type_id).get(part_type).try_read();
+        require(existing_part.is_none(), "Kombi already has a part of this type");
+
+        // Check if the part is already attached to another kombi
+        let part_attachment = storage::kombi.part_attached_to_kombi.get(part_sub_id).try_read();
+        require(part_attachment.is_none(), "Part is already attached to another kombi");
+
+        // Burn the part token by removing it from total supply
+        _burn(storage::asset.total_supply, part_sub_id, 1);
+
+        // Attach the part to the kombi
+        storage::kombi.kombi_parts.get(kombi_type_id).insert(part_type, part_sub_id);
+        storage::kombi.part_attached_to_kombi.insert(part_sub_id, kombi_asset_id);
+
+        // Log the event
+        log(PartAttachedToKombiEvent {
+            part_id: part_sub_id,
+            kombi_id: kombi_type_id,
+            part_type,
+            owner: msg_sender().unwrap(),
+        });
+    }
+
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType> {
         storage::parts.part_type.get(part_id).try_read()
@@ -383,6 +478,29 @@ impl KombinationToken for Contract {
     #[storage(read)]
     fn get_total_assets_type(asset_type: AssetType) -> u64 {
         storage::asset.total_assets_type.get(asset_type).try_read().unwrap_or(0)
+    }
+
+    #[storage(read)]
+    fn get_kombi_parts(kombi_asset_id: AssetId, part_type: PartType) -> Option<AssetId> {
+        match storage::asset.asset_sub_id.get(kombi_asset_id).try_read() {
+            Some(kombi_sub_id) => {
+                match storage::kombi.kombi_parts.get(kombi_sub_id).get(part_type).try_read() {
+                    Some(part_sub_id) => {
+                        Some(AssetId::new(ContractId::this(), part_sub_id))
+                    }
+                    None => None,
+                }
+            }
+            None => None,
+        }
+    }
+
+    #[storage(read)]
+    fn is_part_attached_to_kombi(part_asset_id: AssetId) -> Option<AssetId> {
+        match storage::asset.asset_sub_id.get(part_asset_id).try_read() {
+            Some(part_sub_id) => storage::kombi.part_attached_to_kombi.get(part_sub_id).try_read(),
+            None => None,
+        }
     }
 }
 
@@ -427,18 +545,12 @@ impl SRC7 for Contract {
             None => return None,
         };
 
-        log(sub_id);
-
         let asset_type = match storage::asset.asset_type.get(asset).try_read() {
             Some(asset_type) => asset_type,
             None => return None,
         };
 
-        log(asset_type);
-
         let asset_id = AssetId::new(ContractId::zero(), sub_id);
-
-        log(asset_id);
 
         match asset_type {
             AssetType::Part(_) => {

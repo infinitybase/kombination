@@ -1,4 +1,10 @@
-import { B256Coder, BigNumberCoder, sha256, TupleCoder } from "fuels";
+import {
+  B256Coder,
+  BigNumberCoder,
+  NumberCoder,
+  sha256,
+  TupleCoder,
+} from "fuels";
 
 // sha256(PART)
 export const PART_PREFIX =
@@ -7,6 +13,15 @@ export const PART_PREFIX =
 // sha256(KOMBI)
 export const KOMBI_PREFIX =
   "0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620";
+
+export enum Part {
+  HeadLight = 0,
+  Bumper = 1,
+  Antenna = 2,
+  Mirror = 3,
+  Screens = 4,
+  SideStep = 5,
+}
 
 export class KombiTypeSubIDCoder {
   private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
@@ -25,18 +40,22 @@ export class KombiTypeSubIDCoder {
 }
 
 export class PartSubIDCoder {
-  private coder: TupleCoder<[B256Coder, BigNumberCoder]>;
+  private coder: TupleCoder<[B256Coder, NumberCoder, BigNumberCoder]>;
 
   constructor() {
-    this.coder = new TupleCoder([new B256Coder(), new BigNumberCoder("u64")]);
+    this.coder = new TupleCoder([
+      new B256Coder(),
+      new NumberCoder("u8"),
+      new BigNumberCoder("u64"),
+    ]);
   }
 
-  encode(partId: number) {
-    return this.coder.encode([PART_PREFIX, partId]);
+  encode(part: Part, partId: number) {
+    return this.coder.encode([PART_PREFIX, part, partId]);
   }
 
-  encodeSha256(partId: number) {
-    return sha256(this.encode(partId));
+  encodeSha256(part: Part, partId: number) {
+    return sha256(this.encode(part, partId));
   }
 }
 
