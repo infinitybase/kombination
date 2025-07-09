@@ -35,7 +35,7 @@ const setup = async () => {
   const [wallet] = wallets;
 
   const configurables = {
-    INITIAL_OWNER: Address.bits(wallet),
+    INITIAL_OWNER: Identity.address(wallet),
     NAME: "Kombination",
     SYMBOL: "KMB",
   };
@@ -43,6 +43,8 @@ const setup = async () => {
     configurableConstants: configurables,
   });
   const { contract } = await deploy.waitForResult();
+
+  await callAndWait(contract.functions.constructor(Identity.address(wallet)));
 
   return {
     contract,
@@ -458,5 +460,44 @@ describe("KombinationToken - Part Attachment", async () => {
       contract.functions.get_kombi_parts(kombiAssetId, PartTypeInput.Antenna),
     );
     expect(kombiParts).toBeUndefined();
+  });
+});
+
+describe("KombinationToken - Admin", async () => {
+  let testSetup: Awaited<ReturnType<typeof setup>>;
+
+  beforeAll(async () => {
+    testSetup = await setup();
+  });
+
+  afterAll(async () => {
+    testSetup.cleanup();
+  });
+
+  test("should error on call methods when not admin", async () => {
+    const { contract, wallet, wallets } = testSetup;
+    contract.account = wallets[1];
+
+    await expect(
+      callAndWait(contract.functions.register_kombi_type(KOMBI_METADATA)),
+    ).rejects.toThrow("NotAdmin");
+
+    await expect(
+      callAndWait(
+        contract.functions.register_part(PartTypeInput.Antenna, {
+          ...PART_METADATA,
+          kombi_type_id: kombiTypeSubIDCoder.encodeSha256(0),
+        }),
+      ),
+    ).rejects.toThrow("NotAdmin");
+
+    await expect(
+      callAndWait(
+        contract.functions.mint_kombi(
+          kombiTypeSubIDCoder.encodeSha256(0),
+          Identity.address(wallet),
+        ),
+      ),
+    ).rejects.toThrow("NotAdmin");
   });
 });

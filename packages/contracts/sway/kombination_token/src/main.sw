@@ -17,10 +17,17 @@ use sway_libs::{
         },
         metadata::*,
     },
+    admin::{
+        only_admin,
+        add_admin,
+        revoke_admin,
+        is_admin,
+    },
     ownership::{
         _owner,
         initialize_ownership,
         only_owner,
+        transfer_ownership,
     },
     pausable::{
         _is_paused,
@@ -35,7 +42,7 @@ const PART_PREFIX: b256 = 0x05aa3ac8d365559e81f8ad1b62918aedeabeaebab553e7b129ae
 const KOMBI_PREFIX: b256 = 0x390643a7ea067800e503b0510f4a6e3f1cc9b114b09dd9d140553f76a19a0620;
 
 configurable {
-    INITIAL_OWNER: Address = Address::zero(),
+    INITIAL_OWNER: Identity = Identity::Address(Address::zero()),
     NAME: str[11] = __to_str_array("Kombination"),
     SYMBOL: str[3] = __to_str_array("KMB"),
 }
@@ -109,11 +116,6 @@ impl Hash for AssetType {
     }
 }
 
-/// UTILS
-fn part_sub_id(part_id: u64) -> PartSubId {
-    sha256((PART_PREFIX, part_id))
-}
-
 /// EVENTS
 struct PartRegisteredEvent {
     part_id: u64,
@@ -159,8 +161,6 @@ storage {
         total_assets: u64 = 0,
         total_supply: StorageMap<AssetId, u64> = StorageMap {},
         asset_sub_id: StorageMap<AssetId, SubId> = StorageMap {},
-        name: StorageMap<AssetId, StorageString> = StorageMap {},
-        symbol: StorageMap<AssetId, StorageString> = StorageMap {},
         asset_type: StorageMap<AssetId, AssetType> = StorageMap {},
         total_assets_type: StorageMap<AssetType, u64> = StorageMap {},
     },
@@ -200,6 +200,9 @@ abi KombinationToken {
     #[storage(read, write), payable]
     fn detach_part(part_asset_id: AssetId);
 
+    #[storage(read, write)]
+    fn set_metadata(asset_id: AssetId, key: String, value: Metadata);
+
     #[storage(read)]
     fn get_part_type(part_id: PartSubId) -> Option<PartType>;
 
@@ -219,7 +222,8 @@ abi KombinationToken {
 impl KombinationToken for Contract {
     #[storage(read, write)]
     fn mint_part(part_id: PartSubId, recipient: Identity) {
-        // TODO: Only admin can mint parts
+        only_admin();
+
         let asset_id = AssetId::new(ContractId::this(), part_id);
         require(
             storage::asset.total_supply.get(asset_id).try_read().is_none(), 
@@ -258,7 +262,8 @@ impl KombinationToken for Contract {
 
     #[storage(read, write)]
     fn mint_kombi(kombi_id: KombiTypeSubId, recipient: Identity) {
-        // TODO: Only admin can mint kombi
+        only_admin();
+
         let total_assets = storage::asset.total_assets_type.get(AssetType::Kombi).try_read().unwrap_or(0);
         let sub_id = sha256((kombi_id, total_assets));
         let asset_id = AssetId::new(ContractId::zero(), sub_id);
@@ -291,7 +296,8 @@ impl KombinationToken for Contract {
 
     #[storage(read, write)]
     fn register_part(part: PartType, metadata: PartMetadata) {
-        // TODO: Only admin can register parts
+        only_admin();
+
         let part_id = storage::parts.total_parts.get(part).try_read().unwrap_or(0);
         let sub_id = sha256((PART_PREFIX, part, part_id));
 
@@ -346,7 +352,8 @@ impl KombinationToken for Contract {
 
     #[storage(read, write)]
     fn register_kombi_type(metadata: KombiTypeMetadata) {
-        // TODO: Only admin can register kombi types
+        only_admin();
+
         let total_types = storage::kombi.total_types.read();
         let kombi_type_id = sha256((KOMBI_PREFIX, total_types));
 
@@ -404,7 +411,6 @@ impl KombinationToken for Contract {
 
     #[storage(read, write), payable]
     fn attach_part(kombi_asset_id: AssetId) {
-        // Verify that the kombi exists and is valid
         let kombi_asset_type = storage::asset.asset_type.get(kombi_asset_id).try_read();
         require(kombi_asset_type.is_some(), "Kombi does not exist");
         
@@ -455,10 +461,9 @@ impl KombinationToken for Contract {
         };
 
         // Check if this part is compatible with the kombi type
-        let part_kombi_type = match storage::parts.part_kombi_type.get(part_sub_id).try_read() {
+         match storage::parts.part_kombi_type.get(part_sub_id).try_read() {
             Some(part_kombi_type) => {
                 require(part_kombi_type == kombi_type_id, "Part is not compatible with this kombi type");
-                part_kombi_type
             },
             None => {
                 require(false, "Part kombi type not found");
@@ -556,6 +561,23 @@ impl KombinationToken for Contract {
             part_type,
             owner: msg_sender().unwrap(),
         });
+    }
+
+    #[storage(read, write)]
+    fn set_metadata(asset_id: AssetId, key: String, value: Metadata) {
+        only_admin();
+
+        let asset_type = storage::asset.asset_type.get(asset_id).try_read();
+        require(asset_type.is_some(), "Asset does not exist");
+
+        match asset_type.unwrap() {
+            AssetType::Part(_) => {
+                _set_metadata(storage::parts.metadata, asset_id, key, value);
+            }
+            AssetType::Kombi => {
+                _set_metadata(storage::kombi.metadata, asset_id, key, value);
+            }
+        }
     }
 
     #[storage(read)]
@@ -684,12 +706,52 @@ impl Pausable for Contract {
 
 abi Constructor {
     #[storage(read, write)]
-    fn constructor(owner: Identity);
+    fn constructor(admin: Identity);
 }
 
 impl Constructor for Contract {
     #[storage(read, write)]
-    fn constructor(owner: Identity) {
-        initialize_ownership(owner);
+    fn constructor(admin: Identity) {
+        initialize_ownership(INITIAL_OWNER);
+        add_admin(admin);
+    }
+}
+
+abi Ownership {
+    #[storage(read, write)]
+    fn add_admin(admin: Identity);
+
+    #[storage(read)]
+    fn is_admin(admin: Identity) -> bool;
+
+    #[storage(read, write)]
+    fn revoke_admin(admin: Identity);
+
+    #[storage(read, write)]
+    fn transfer_ownership(new_owner: Identity);
+}
+
+impl Ownership for Contract {
+    #[storage(read, write)]
+    fn add_admin(admin: Identity) {
+        only_owner();
+        add_admin(admin);
+    }
+    
+    #[storage(read)]
+    fn is_admin(admin: Identity) -> bool {
+        is_admin(admin)
+    }
+
+    #[storage(read, write)]
+    fn revoke_admin(admin: Identity) {
+        only_owner();
+        revoke_admin(admin);
+    }
+
+    #[storage(read, write)]
+    fn transfer_ownership(new_owner: Identity) {
+        only_owner();
+        transfer_ownership(new_owner);
     }
 }

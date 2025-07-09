@@ -29,6 +29,8 @@ import type { Option, Enum } from "./common";
 
 export enum AccessErrorInput { NotOwner = 'NotOwner' };
 export enum AccessErrorOutput { NotOwner = 'NotOwner' };
+export enum AdminErrorInput { NotAdmin = 'NotAdmin' };
+export enum AdminErrorOutput { NotAdmin = 'NotAdmin' };
 export type AssetTypeInput = Enum<{ Kombi: undefined, Part: PartTypeInput }>;
 export type AssetTypeOutput = Enum<{ Kombi: void, Part: PartTypeOutput }>;
 export enum BurnErrorInput { NotEnoughCoins = 'NotEnoughCoins', ZeroAmount = 'ZeroAmount' };
@@ -62,6 +64,8 @@ export type KombiTypeRegisteredEventInput = { kombi_id: BigNumberish, sub_id: st
 export type KombiTypeRegisteredEventOutput = { kombi_id: BN, sub_id: string, metadata: KombiTypeMetadataOutput };
 export type OwnershipSetInput = { new_owner: IdentityInput };
 export type OwnershipSetOutput = { new_owner: IdentityOutput };
+export type OwnershipTransferredInput = { new_owner: IdentityInput, previous_owner: IdentityInput };
+export type OwnershipTransferredOutput = { new_owner: IdentityOutput, previous_owner: IdentityOutput };
 export type PartAttachedToKombiEventInput = { part_id: string, kombi_id: string, part_type: PartTypeInput, owner: IdentityInput };
 export type PartAttachedToKombiEventOutput = { part_id: string, kombi_id: string, part_type: PartTypeOutput, owner: IdentityOutput };
 export type PartDetachedFromKombiEventInput = { part_id: string, kombi_id: string, part_type: PartTypeInput, owner: IdentityInput };
@@ -78,7 +82,7 @@ export type TotalSupplyEventInput = { asset: AssetIdInput, supply: BigNumberish,
 export type TotalSupplyEventOutput = { asset: AssetIdOutput, supply: BN, sender: IdentityOutput };
 
 export type KombinationTokenConfigurables = Partial<{
-  INITIAL_OWNER: AddressInput;
+  INITIAL_OWNER: IdentityInput;
   NAME: string;
   SYMBOL: string;
 }>;
@@ -187,24 +191,29 @@ const abi = {
       ]
     },
     {
+      "type": "enum sway_libs::admin::errors::AdminError",
+      "concreteTypeId": "00b7a382efc43806d838a854db78cfb32171c259d5df893d1df8a4eba1906be4",
+      "metadataTypeId": 7
+    },
+    {
       "type": "enum sway_libs::asset::errors::BurnError",
       "concreteTypeId": "3acdc2adac8e0589c5864525e0edc9dc61a9571a4d09c3c57b58ea76d33f4b46",
-      "metadataTypeId": 7
+      "metadataTypeId": 8
     },
     {
       "type": "enum sway_libs::asset::errors::MintError",
       "concreteTypeId": "dff9dfec998a49b40f1c4b09567400f0e712aaf939c08f7d07bc5c63116e1084",
-      "metadataTypeId": 8
+      "metadataTypeId": 9
     },
     {
       "type": "enum sway_libs::asset::errors::SetMetadataError",
       "concreteTypeId": "c6c09c148c1a1341c7ab81697b3545cc695fa67668a169cddc59790a9a0b6b44",
-      "metadataTypeId": 9
+      "metadataTypeId": 10
     },
     {
       "type": "enum sway_libs::ownership::errors::InitializationError",
       "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893",
-      "metadataTypeId": 10
+      "metadataTypeId": 11
     },
     {
       "type": "str",
@@ -221,72 +230,72 @@ const abi = {
     {
       "type": "struct KombiMintedEvent",
       "concreteTypeId": "2bc97e8888876648dc72ab3527ff580287ac91a41c77c4ae8e666d8b1c2d4c07",
-      "metadataTypeId": 13
+      "metadataTypeId": 14
     },
     {
       "type": "struct KombiTypeMetadata",
       "concreteTypeId": "61c564895cc9973ae814f360e10e0c60e13806a560837f7ee6031e2d3b0450e5",
-      "metadataTypeId": 14
+      "metadataTypeId": 15
     },
     {
       "type": "struct KombiTypeRegisteredEvent",
       "concreteTypeId": "bed0cbfcc2b9096e913b282d4d8dda77995eb1ea8672e1dcaf13e7f78fc2e89d",
-      "metadataTypeId": 15
+      "metadataTypeId": 16
     },
     {
       "type": "struct PartAttachedToKombiEvent",
       "concreteTypeId": "10d6929e93e16370b08ec173287db6daf5301b557f42352b4083f0d896ab24a7",
-      "metadataTypeId": 16
+      "metadataTypeId": 17
     },
     {
       "type": "struct PartDetachedFromKombiEvent",
       "concreteTypeId": "98242007b7e0bdc2ec6a284c4197b63b4a30c6377f1fda4a6149e35c17f69a2e",
-      "metadataTypeId": 17
+      "metadataTypeId": 18
     },
     {
       "type": "struct PartMetadata",
       "concreteTypeId": "44b2e610283f0f6a58c3d5789fae52daedbff1f82dfa58c49a9771b6ec13d376",
-      "metadataTypeId": 18
+      "metadataTypeId": 19
     },
     {
       "type": "struct PartMintedEvent",
       "concreteTypeId": "7f4a22ad589dbb459f35f8fac96ebc497a029d54dcccc3ea178ec586fd295037",
-      "metadataTypeId": 19
+      "metadataTypeId": 20
     },
     {
       "type": "struct PartRegisteredEvent",
       "concreteTypeId": "48119ff9b91a435266631a39bafbd487893d8adde3f64b8e09671ee01aa975b0",
-      "metadataTypeId": 20
+      "metadataTypeId": 21
     },
     {
       "type": "struct standards::src20::TotalSupplyEvent",
       "concreteTypeId": "f255d5cc2114d1b6bc34bef4c28d4b60caccffd9a672ed16b79ea217e1c4a8a3",
-      "metadataTypeId": 21
+      "metadataTypeId": 22
     },
     {
       "type": "struct standards::src7::SetMetadataEvent",
       "concreteTypeId": "f1b1cc90b68559aa4bb5cc58201ebb5c5402ed3aa28927140761e8ff7dcd3ab8",
-      "metadataTypeId": 22
-    },
-    {
-      "type": "struct std::address::Address",
-      "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
       "metadataTypeId": 23
     },
     {
       "type": "struct std::asset_id::AssetId",
       "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974",
-      "metadataTypeId": 24
+      "metadataTypeId": 25
     },
     {
       "type": "struct std::string::String",
       "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c",
-      "metadataTypeId": 28
+      "metadataTypeId": 29
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipSet",
       "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5",
-      "metadataTypeId": 29
+      "metadataTypeId": 30
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipTransferred",
+      "concreteTypeId": "b3fffbcb3158d7c010c31b194b60fb7857adb4ad61bdcf4b8b42958951d9f308",
+      "metadataTypeId": 31
     },
     {
       "type": "u64",
@@ -380,7 +389,7 @@ const abi = {
         },
         {
           "name": "Bytes",
-          "typeId": 25
+          "typeId": 26
         },
         {
           "name": "Int",
@@ -388,7 +397,7 @@ const abi = {
         },
         {
           "name": "String",
-          "typeId": 28
+          "typeId": 29
         }
       ]
     },
@@ -398,11 +407,11 @@ const abi = {
       "components": [
         {
           "name": "Address",
-          "typeId": 23
+          "typeId": 24
         },
         {
           "name": "ContractId",
-          "typeId": 27
+          "typeId": 28
         }
       ]
     },
@@ -416,16 +425,26 @@ const abi = {
         },
         {
           "name": "Some",
-          "typeId": 11
+          "typeId": 12
         }
       ],
       "typeParameters": [
-        11
+        12
+      ]
+    },
+    {
+      "type": "enum sway_libs::admin::errors::AdminError",
+      "metadataTypeId": 7,
+      "components": [
+        {
+          "name": "NotAdmin",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        }
       ]
     },
     {
       "type": "enum sway_libs::asset::errors::BurnError",
-      "metadataTypeId": 7,
+      "metadataTypeId": 8,
       "components": [
         {
           "name": "NotEnoughCoins",
@@ -439,7 +458,7 @@ const abi = {
     },
     {
       "type": "enum sway_libs::asset::errors::MintError",
-      "metadataTypeId": 8,
+      "metadataTypeId": 9,
       "components": [
         {
           "name": "ZeroAmount",
@@ -449,7 +468,7 @@ const abi = {
     },
     {
       "type": "enum sway_libs::asset::errors::SetMetadataError",
-      "metadataTypeId": 9,
+      "metadataTypeId": 10,
       "components": [
         {
           "name": "EmptyString",
@@ -463,7 +482,7 @@ const abi = {
     },
     {
       "type": "enum sway_libs::ownership::errors::InitializationError",
-      "metadataTypeId": 10,
+      "metadataTypeId": 11,
       "components": [
         {
           "name": "CannotReinitialized",
@@ -473,15 +492,15 @@ const abi = {
     },
     {
       "type": "generic T",
-      "metadataTypeId": 11
-    },
-    {
-      "type": "raw untyped ptr",
       "metadataTypeId": 12
     },
     {
+      "type": "raw untyped ptr",
+      "metadataTypeId": 13
+    },
+    {
       "type": "struct KombiMintedEvent",
-      "metadataTypeId": 13,
+      "metadataTypeId": 14,
       "components": [
         {
           "name": "kombi_id",
@@ -489,7 +508,7 @@ const abi = {
         },
         {
           "name": "asset_id",
-          "typeId": 24
+          "typeId": 25
         },
         {
           "name": "recipient",
@@ -499,33 +518,33 @@ const abi = {
     },
     {
       "type": "struct KombiTypeMetadata",
-      "metadataTypeId": 14,
+      "metadataTypeId": 15,
       "components": [
         {
           "name": "name",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "description",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "bg_image",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "image",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "uri",
-          "typeId": 28
+          "typeId": 29
         }
       ]
     },
     {
       "type": "struct KombiTypeRegisteredEvent",
-      "metadataTypeId": 15,
+      "metadataTypeId": 16,
       "components": [
         {
           "name": "kombi_id",
@@ -537,34 +556,12 @@ const abi = {
         },
         {
           "name": "metadata",
-          "typeId": 14
+          "typeId": 15
         }
       ]
     },
     {
       "type": "struct PartAttachedToKombiEvent",
-      "metadataTypeId": 16,
-      "components": [
-        {
-          "name": "part_id",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "kombi_id",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        },
-        {
-          "name": "part_type",
-          "typeId": 1
-        },
-        {
-          "name": "owner",
-          "typeId": 5
-        }
-      ]
-    },
-    {
-      "type": "struct PartDetachedFromKombiEvent",
       "metadataTypeId": 17,
       "components": [
         {
@@ -586,8 +583,30 @@ const abi = {
       ]
     },
     {
-      "type": "struct PartMetadata",
+      "type": "struct PartDetachedFromKombiEvent",
       "metadataTypeId": 18,
+      "components": [
+        {
+          "name": "part_id",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        },
+        {
+          "name": "kombi_id",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        },
+        {
+          "name": "part_type",
+          "typeId": 1
+        },
+        {
+          "name": "owner",
+          "typeId": 5
+        }
+      ]
+    },
+    {
+      "type": "struct PartMetadata",
+      "metadataTypeId": 19,
       "components": [
         {
           "name": "kombi_type_id",
@@ -595,21 +614,21 @@ const abi = {
         },
         {
           "name": "bg_image",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "image",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "uri",
-          "typeId": 28
+          "typeId": 29
         }
       ]
     },
     {
       "type": "struct PartMintedEvent",
-      "metadataTypeId": 19,
+      "metadataTypeId": 20,
       "components": [
         {
           "name": "part_id",
@@ -617,7 +636,7 @@ const abi = {
         },
         {
           "name": "asset_id",
-          "typeId": 24
+          "typeId": 25
         },
         {
           "name": "recipient",
@@ -627,7 +646,7 @@ const abi = {
     },
     {
       "type": "struct PartRegisteredEvent",
-      "metadataTypeId": 20,
+      "metadataTypeId": 21,
       "components": [
         {
           "name": "part_id",
@@ -643,17 +662,17 @@ const abi = {
         },
         {
           "name": "metadata",
-          "typeId": 18
+          "typeId": 19
         }
       ]
     },
     {
       "type": "struct standards::src20::TotalSupplyEvent",
-      "metadataTypeId": 21,
+      "metadataTypeId": 22,
       "components": [
         {
           "name": "asset",
-          "typeId": 24
+          "typeId": 25
         },
         {
           "name": "supply",
@@ -667,11 +686,11 @@ const abi = {
     },
     {
       "type": "struct standards::src7::SetMetadataEvent",
-      "metadataTypeId": 22,
+      "metadataTypeId": 23,
       "components": [
         {
           "name": "asset",
-          "typeId": 24
+          "typeId": 25
         },
         {
           "name": "metadata",
@@ -685,7 +704,7 @@ const abi = {
         },
         {
           "name": "key",
-          "typeId": 28
+          "typeId": 29
         },
         {
           "name": "sender",
@@ -695,16 +714,6 @@ const abi = {
     },
     {
       "type": "struct std::address::Address",
-      "metadataTypeId": 23,
-      "components": [
-        {
-          "name": "bits",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ]
-    },
-    {
-      "type": "struct std::asset_id::AssetId",
       "metadataTypeId": 24,
       "components": [
         {
@@ -714,12 +723,22 @@ const abi = {
       ]
     },
     {
-      "type": "struct std::bytes::Bytes",
+      "type": "struct std::asset_id::AssetId",
       "metadataTypeId": 25,
       "components": [
         {
+          "name": "bits",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        }
+      ]
+    },
+    {
+      "type": "struct std::bytes::Bytes",
+      "metadataTypeId": 26,
+      "components": [
+        {
           "name": "buf",
-          "typeId": 26
+          "typeId": 27
         },
         {
           "name": "len",
@@ -729,11 +748,11 @@ const abi = {
     },
     {
       "type": "struct std::bytes::RawBytes",
-      "metadataTypeId": 26,
+      "metadataTypeId": 27,
       "components": [
         {
           "name": "ptr",
-          "typeId": 12
+          "typeId": 13
         },
         {
           "name": "cap",
@@ -743,7 +762,7 @@ const abi = {
     },
     {
       "type": "struct std::contract_id::ContractId",
-      "metadataTypeId": 27,
+      "metadataTypeId": 28,
       "components": [
         {
           "name": "bits",
@@ -753,20 +772,34 @@ const abi = {
     },
     {
       "type": "struct std::string::String",
-      "metadataTypeId": 28,
+      "metadataTypeId": 29,
       "components": [
         {
           "name": "bytes",
-          "typeId": 25
+          "typeId": 26
         }
       ]
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipSet",
-      "metadataTypeId": 29,
+      "metadataTypeId": 30,
       "components": [
         {
           "name": "new_owner",
+          "typeId": 5
+        }
+      ]
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipTransferred",
+      "metadataTypeId": 31,
+      "components": [
+        {
+          "name": "new_owner",
+          "typeId": 5
+        },
+        {
+          "name": "previous_owner",
           "typeId": 5
         }
       ]
@@ -1004,6 +1037,33 @@ const abi = {
     {
       "inputs": [
         {
+          "name": "asset_id",
+          "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
+        },
+        {
+          "name": "key",
+          "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
+        },
+        {
+          "name": "value",
+          "concreteTypeId": "f44b531974c6c04e17e66ab54e9868d230b9a24b3710b184399c363f0190180d"
+        }
+      ],
+      "name": "set_metadata",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
           "name": "_asset",
           "concreteTypeId": "c0710b6731b1dd59799cf6bef33eee3b3b04a2e40e80a0724090215bbf2ca974"
         }
@@ -1163,11 +1223,86 @@ const abi = {
     {
       "inputs": [
         {
-          "name": "owner",
+          "name": "admin",
           "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
         }
       ],
       "name": "constructor",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "admin",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "add_admin",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "admin",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "is_admin",
+      "output": "b760f44fa5965c2474a3b471467a22c43185152129295af588b022ae50b50903",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "admin",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "revoke_admin",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "new_owner",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "transfer_ownership",
       "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
       "attributes": [
         {
@@ -1206,6 +1341,10 @@ const abi = {
       "concreteTypeId": "98242007b7e0bdc2ec6a284c4197b63b4a30c6377f1fda4a6149e35c17f69a2e"
     },
     {
+      "logId": "51689703501740038",
+      "concreteTypeId": "00b7a382efc43806d838a854db78cfb32171c259d5df893d1df8a4eba1906be4"
+    },
+    {
       "logId": "3155192138820970056",
       "concreteTypeId": "2bc97e8888876648dc72ab3527ff580287ac91a41c77c4ae8e666d8b1c2d4c07"
     },
@@ -1240,24 +1379,28 @@ const abi = {
     {
       "logId": "16280289466020123285",
       "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5"
+    },
+    {
+      "logId": "12970362301975156672",
+      "concreteTypeId": "b3fffbcb3158d7c010c31b194b60fb7857adb4ad61bdcf4b8b42958951d9f308"
     }
   ],
   "messagesTypes": [],
   "configurables": [
     {
       "name": "INITIAL_OWNER",
-      "concreteTypeId": "f597b637c3b0f588fb8d7086c6f4735caa3122b85f0423b82e489f9bb58e2308",
-      "offset": 77632
+      "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
+      "offset": 87016
     },
     {
       "name": "NAME",
       "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31",
-      "offset": 77664
+      "offset": 87056
     },
     {
       "name": "SYMBOL",
       "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2",
-      "offset": 77680
+      "offset": 87072
     }
   ]
 };
@@ -1290,6 +1433,7 @@ export class KombinationTokenInterface extends Interface {
     mint_part: FunctionFragment;
     register_kombi_type: FunctionFragment;
     register_part: FunctionFragment;
+    set_metadata: FunctionFragment;
     decimals: FunctionFragment;
     name: FunctionFragment;
     symbol: FunctionFragment;
@@ -1301,6 +1445,10 @@ export class KombinationTokenInterface extends Interface {
     pause: FunctionFragment;
     unpause: FunctionFragment;
     constructor: FunctionFragment;
+    add_admin: FunctionFragment;
+    is_admin: FunctionFragment;
+    revoke_admin: FunctionFragment;
+    transfer_ownership: FunctionFragment;
   };
 }
 
@@ -1321,6 +1469,7 @@ export class KombinationToken extends __Contract {
     mint_part: InvokeFunction<[part_id: string, recipient: IdentityInput], void>;
     register_kombi_type: InvokeFunction<[metadata: KombiTypeMetadataInput], void>;
     register_part: InvokeFunction<[part: PartTypeInput, metadata: PartMetadataInput], void>;
+    set_metadata: InvokeFunction<[asset_id: AssetIdInput, key: StdString, value: MetadataInput], void>;
     decimals: InvokeFunction<[_asset: AssetIdInput], Option<number>>;
     name: InvokeFunction<[asset: AssetIdInput], Option<StdString>>;
     symbol: InvokeFunction<[asset: AssetIdInput], Option<StdString>>;
@@ -1331,7 +1480,11 @@ export class KombinationToken extends __Contract {
     is_paused: InvokeFunction<[], boolean>;
     pause: InvokeFunction<[], void>;
     unpause: InvokeFunction<[], void>;
-    constructor: InvokeFunction<[owner: IdentityInput], void>;
+    constructor: InvokeFunction<[admin: IdentityInput], void>;
+    add_admin: InvokeFunction<[admin: IdentityInput], void>;
+    is_admin: InvokeFunction<[admin: IdentityInput], boolean>;
+    revoke_admin: InvokeFunction<[admin: IdentityInput], void>;
+    transfer_ownership: InvokeFunction<[new_owner: IdentityInput], void>;
   };
 
   constructor(
