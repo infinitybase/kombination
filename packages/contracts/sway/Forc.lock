@@ -1,16 +1,28 @@
 [[package]]
+name = "kombi_nft"
+source = "member"
+dependencies = [
+    "kombi_nft_abi",
+    "kombination_lib",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "kombi_nft_abi"
+source = "path+from-root-5B76F245E39222D6"
+dependencies = ["std"]
+
+[[package]]
 name = "kombination_example"
 source = "member"
 dependencies = ["std"]
 
 [[package]]
-name = "kombination_token"
+name = "kombination_lib"
 source = "member"
-dependencies = [
-    "standards",
-    "std",
-    "sway_libs",
-]
+dependencies = ["std"]
 
 [[package]]
 name = "standards"

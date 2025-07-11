@@ -12,5 +12,5 @@
 
 export { KombinationExample } from './KombinationExample';
 export { KombinationExampleFactory } from './KombinationExampleFactory';
-export { KombinationToken } from './KombinationToken';
-export { KombinationTokenFactory } from './KombinationTokenFactory';
+export { KombiNft } from './KombiNft';
+export { KombiNftFactory } from './KombiNftFactory';
