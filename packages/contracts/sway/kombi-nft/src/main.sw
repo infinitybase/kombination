@@ -8,7 +8,11 @@ use std::{
     call_frames::msg_asset_id,
     hash::{sha256},
 };
-use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SRC7}};
+use standards::{
+    src20::SRC20, 
+    src5::{SRC5, State}, 
+    src7::{Metadata, SRC7, SetMetadataEvent},
+};
 use sway_libs::{
     asset::{
         supply::{_burn, _mint},
@@ -94,6 +98,12 @@ fn random_metadata(seed: u64) -> KombiMetadata {
     }
 }
 
+fn generate_uri(base_uri: String, asset_bytes: Bytes, file_name: str) -> String {
+    let base_uri = concat(base_uri, "0x".into());
+    let base_uri = concat(base_uri, String::from_ascii(asset_bytes));
+    concat(base_uri, String::from_ascii_str(file_name))
+}
+
 abi KombiNFT {
     #[storage(read, write)]
     fn add_component(component: ComponentType, value: String);
@@ -146,13 +156,30 @@ impl KombiNFT for Contract {
 
         storage.metadata.insert(asset_id, metadata);
 
-        _mint(
+        let asset_id = _mint(
             storage.total_assets,
             storage.total_supply,
             to,
             sub_id,
             1,
         );
+
+        let sender = msg_sender().unwrap();
+        let base_uri = storage.base_metadata_uri.read_slice().unwrap();
+        let asset_bytes = b256_to_ascii_bytes(asset_id.bits());
+
+        SetMetadataEvent::new(
+            asset_id, 
+            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))), 
+            String::from_ascii_str("uri"), 
+            sender
+        ).log();
+        SetMetadataEvent::new(
+            asset_id, 
+            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))), 
+            String::from_ascii_str("image"), 
+            sender
+        ).log();
         
         log(KombiMintedEvent {
             asset_id: asset_id,
@@ -204,13 +231,11 @@ impl SRC7 for Contract {
         }
 
         let base_uri = storage.base_metadata_uri.read_slice().unwrap();
-        let asset_id = b256_to_ascii_bytes(asset.bits());
-        let base_uri = concat(base_uri, "0x".into());
-        let base_uri = concat(base_uri, String::from_ascii(asset_id));
+        let asset_bytes = b256_to_ascii_bytes(asset.bits());
 
         match key.as_str() {
-            "uri" => Some(Metadata::String(concat(base_uri, String::from_ascii_str("/metadata.json")))),
-            "image" => Some(Metadata::String(concat(base_uri, String::from_ascii_str("/image.png")))),
+            "uri" => Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))),
+            "image" => Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))),
             _ => None,
         }
     }
