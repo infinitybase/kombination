@@ -7,7 +7,7 @@
 /*
   Fuels version: 0.100.0
   Forc version: 0.68.2
-  Fuel-Core version: 0.43.2
+  Fuel-Core version: 0.43.1
 */
 
 import { ContractFactory as __ContractFactory, decompressBytecode } from "fuels";

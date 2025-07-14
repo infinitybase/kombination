@@ -3,12 +3,10 @@ contract;
 use std::{
     bytes::Bytes,
     convert::Into,
-    codec::{encode},
-    block::timestamp,
+    block::{timestamp},
     context::msg_amount,
     call_frames::msg_asset_id,
-    hash::{Hash, Hasher, sha256, keccak256},
-    bytes_conversions::{b256::*, u16::*, u256::*, u32::*, u64::*}
+    hash::{sha256},
 };
 use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SRC7}};
 use sway_libs::{
@@ -48,21 +46,10 @@ use kombi_nft_abi::{
     KombiMintedEvent,
     KombiMetadata,
 };
-use kombination_lib::string::{concat, b256_to_ascii_bytes};
-
-fn seed(token_id: u64) -> u64 {
-    let seed = keccak256({
-        let mut bytes = Bytes::new();
-        bytes.append(Bytes::from(encode(u256::from(token_id))));
-        bytes.append(Bytes::from(encode(u256::from(timestamp()))));
-        bytes
-    });
-    let parts = asm(r1: u256::from(seed)) {
-        r1: (u64, u64, u64, u64)
-    };
-
-    parts.0
-}
+use kombination_lib::{
+    string::{concat, b256_to_ascii_bytes},
+    seed::seed,
+};
 
 configurable {
     INITIAL_OWNER: Identity = Identity::Address(Address::zero()),

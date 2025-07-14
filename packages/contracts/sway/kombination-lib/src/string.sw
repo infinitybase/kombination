@@ -9,15 +9,6 @@ use std::{
 
 const ASCII_MAP: [u8; 16] = [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 97, 98, 99, 100, 101, 102];
 
-impl Add for String {
-    fn add(self, other: Self) -> Self {
-        let mut a = self.as_bytes();
-        let b = other.as_bytes();
-        a.append(b);
-        String::from_ascii(a)
-    }
-}
-
 pub fn concat(a: String, b: String) -> String {
     let mut a = a.as_bytes();
     let b = b.as_bytes();

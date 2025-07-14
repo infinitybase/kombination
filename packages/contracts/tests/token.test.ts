@@ -3,7 +3,7 @@ import { launchTestNode } from "fuels/test-utils";
 import { AssetId, Identity, callAndWait, get } from "./utils";
 import { KombiNftFactory } from "../src";
 import { ComponentTypeInput } from "../src/artifacts/contracts/KombiNft";
-import { bn } from "fuels";
+import { BN, bn } from "fuels";
 
 const BASE_URI = "https://kombi.com/";
 

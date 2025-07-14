@@ -7,7 +7,7 @@
 /*
   Fuels version: 0.100.0
   Forc version: 0.68.2
-  Fuel-Core version: 0.43.2
+  Fuel-Core version: 0.43.1
 */
 
 import { Contract as __Contract, Interface } from "fuels";
@@ -949,22 +949,22 @@ const abi = {
     {
       "name": "INITIAL_OWNER",
       "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
-      "offset": 55664
+      "offset": 57752
     },
     {
       "name": "NAME",
       "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31",
-      "offset": 55704
+      "offset": 57792
     },
     {
       "name": "SYMBOL",
       "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2",
-      "offset": 55752
+      "offset": 57840
     },
     {
       "name": "PARTS_ADDRESS",
       "concreteTypeId": "29c10735d33b5159f0c71ee1dbd17b36a3e69e41f00fab0d42e1bd9f428d8a54",
-      "offset": 55720
+      "offset": 57808
     }
   ]
 };
