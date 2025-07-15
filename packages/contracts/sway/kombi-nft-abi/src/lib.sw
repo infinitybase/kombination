@@ -1,10 +1,6 @@
 library;
 
-use std::{
-    string::String,
-    convert::Into,
-    hash::{Hash, Hasher},
-};
+use std::{convert::Into, hash::{Hash, Hasher}, string::String};
 
 abi KombiNFT {
     #[storage(read, write)]

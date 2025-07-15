@@ -1,21 +1,26 @@
 contract;
 
 use std::{
+    block::{
+        timestamp,
+    },
     bytes::Bytes,
-    convert::Into,
-    block::{timestamp},
-    context::msg_amount,
     call_frames::msg_asset_id,
-    hash::{sha256},
+    context::msg_amount,
+    convert::Into,
+    hash::{
+        sha256,
+    },
 };
-use standards::{
-    src20::SRC20, 
-    src5::{SRC5, State}, 
-    src7::{Metadata, SRC7, SetMetadataEvent},
-};
+use standards::{src20::SRC20, src5::{SRC5, State}, src7::{Metadata, SetMetadataEvent, SRC7}};
 use sway_libs::{
+    admin::{
+        add_admin,
+        is_admin,
+        only_admin,
+        revoke_admin,
+    },
     asset::{
-        supply::{_burn, _mint},
         base::{
             _name,
             _symbol,
@@ -23,12 +28,10 @@ use sway_libs::{
             _total_supply,
         },
         metadata::*,
-    },
-    admin::{
-        only_admin,
-        add_admin,
-        revoke_admin,
-        is_admin,
+        supply::{
+            _burn,
+            _mint,
+        },
     },
     ownership::{
         _owner,
@@ -41,19 +44,12 @@ use sway_libs::{
         _pause,
         _unpause,
         Pausable,
+        require_not_paused,
     },
 };
 use std::{storage::storage_string::*, string::String};
-use kombi_nft_abi::{
-    ComponentType,
-    ComponentAddedEvent,
-    KombiMintedEvent,
-    KombiMetadata,
-};
-use kombination_lib::{
-    string::{concat, b256_to_ascii_bytes},
-    seed::seed,
-};
+use kombi_nft_abi::{ComponentAddedEvent, ComponentType, KombiMetadata, KombiMintedEvent};
+use kombination_lib::{seed::seed, string::{b256_to_ascii_bytes, concat}};
 
 configurable {
     INITIAL_OWNER: Identity = Identity::Address(Address::zero()),
@@ -122,7 +118,10 @@ impl KombiNFT for Contract {
 
         let component_id = storage.component_types.get(component).try_read().unwrap_or(0);
         let _ = storage.component_metadata.try_insert((component, component_id), StorageString {});
-        storage.component_metadata.get((component, component_id)).write_slice(value);
+        storage
+            .component_metadata
+            .get((component, component_id))
+            .write_slice(value);
         storage.component_types.insert(component, component_id + 1);
 
         log(ComponentAddedEvent {
@@ -140,6 +139,7 @@ impl KombiNFT for Contract {
 
     #[storage(read, write)]
     fn mint(to: Identity) {
+        require_not_paused();
         only_admin();
 
         let total_assets = storage.total_assets.read();
@@ -147,8 +147,12 @@ impl KombiNFT for Contract {
         let asset_id = AssetId::new(ContractId::this(), sub_id);
 
         require(
-            storage.total_supply.get(asset_id).try_read().is_none(),
-            "Asset already minted"
+            storage
+                .total_supply
+                .get(asset_id)
+                .try_read()
+                .is_none(),
+            "Asset already minted",
         );
 
         let value = seed(total_assets);
@@ -156,31 +160,26 @@ impl KombiNFT for Contract {
 
         storage.metadata.insert(asset_id, metadata);
 
-        let asset_id = _mint(
-            storage.total_assets,
-            storage.total_supply,
-            to,
-            sub_id,
-            1,
-        );
+        let asset_id = _mint(storage.total_assets, storage.total_supply, to, sub_id, 1);
 
         let sender = msg_sender().unwrap();
         let base_uri = storage.base_metadata_uri.read_slice().unwrap();
         let asset_bytes = b256_to_ascii_bytes(asset_id.bits());
 
         SetMetadataEvent::new(
-            asset_id, 
-            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))), 
-            String::from_ascii_str("uri"), 
-            sender
+            asset_id,
+            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))),
+            String::from_ascii_str("uri"),
+            sender,
         ).log();
+
         SetMetadataEvent::new(
-            asset_id, 
-            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))), 
-            String::from_ascii_str("image"), 
-            sender
+            asset_id,
+            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))),
+            String::from_ascii_str("image"),
+            sender,
         ).log();
-        
+
         log(KombiMintedEvent {
             asset_id: asset_id,
             metadata: metadata,
@@ -194,12 +193,12 @@ impl SRC20 for Contract {
     fn total_assets() -> u64 {
         _total_assets(storage.total_assets)
     }
-    
+
     #[storage(read)]
     fn total_supply(asset: AssetId) -> Option<u64> {
         _total_supply(storage.total_supply, asset)
     }
-    
+
     #[storage(read)]
     fn name(asset: AssetId) -> Option<String> {
         match storage.total_supply.get(asset).try_read() {
@@ -301,7 +300,7 @@ impl Ownership for Contract {
         only_owner();
         add_admin(admin);
     }
-    
+
     #[storage(read)]
     fn is_admin(admin: Identity) -> bool {
         is_admin(admin)

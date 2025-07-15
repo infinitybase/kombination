@@ -1,11 +1,21 @@
 library;
 
 use std::{
+    block::{
+        height,
+        timestamp,
+    },
     bytes::Bytes,
-    codec::{encode},
-    block::{timestamp, height},
-    hash::{keccak256},
-    bytes_conversions::{u256::*, u64::*}
+    bytes_conversions::{
+        u256::*,
+        u64::*,
+    },
+    codec::{
+        encode,
+    },
+    hash::{
+        keccak256,
+    },
 };
 
 pub fn seed(token_id: u64) -> u64 {
