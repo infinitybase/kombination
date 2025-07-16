@@ -22,6 +22,7 @@ pub struct KombiMetadata {
     pub birth_date: u64,
     pub engine_info: u64,
     pub custom_text: u64,
+    pub kombi_id: u64,
 }
 
 pub struct ComponentAddedEvent {

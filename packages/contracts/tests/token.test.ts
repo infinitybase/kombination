@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { AssetId, Identity, callAndWait, get } from "./utils";
-import { Base64Script, KombiNftFactory } from "../src";
+import { KombiNftFactory } from "../src";
 import { ComponentTypeInput } from "../src/artifacts/contracts/KombiNft";
 import { BN, bn } from "fuels";
 
@@ -57,6 +57,14 @@ describe("KombiNft", () => {
       expect(component).toBeDefined();
       expect(component?.toString()).toBe("1");
     }
+
+    for (const componente of componentes) {
+      await callAndWait(contract.functions.add_component(componente, "test 2"));
+    }
+
+    for (const componente of componentes) {
+      await callAndWait(contract.functions.add_component(componente, "test 3"));
+    }
   });
 
   it("should mint a token", async () => {
@@ -78,9 +86,14 @@ describe("KombiNft", () => {
       throw new Error("No URI found");
     }
 
-    const response = await fetch(uriString);
-    const data = await response.text();
-    const json = JSON.parse(data);
+    const response = await fetch(uriString, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const json = await response.json();
+
+    console.log(json);
 
     expect(json).toBeDefined();
     expect(json.name).toBe("Kombi #0");

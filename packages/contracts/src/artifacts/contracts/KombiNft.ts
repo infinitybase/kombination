@@ -56,8 +56,8 @@ export type ComponentAddedEventInput = { component: ComponentTypeInput, componen
 export type ComponentAddedEventOutput = { component: ComponentTypeOutput, component_id: BN, value: StdString, sender: IdentityOutput };
 export type ContractIdInput = { bits: string };
 export type ContractIdOutput = ContractIdInput;
-export type KombiMetadataInput = { head_light: BigNumberish, bumper: BigNumberish, antenna: BigNumberish, mirror: BigNumberish, screens: BigNumberish, side_step: BigNumberish, kombi_type: BigNumberish, mileage: BigNumberish, birth_date: BigNumberish, engine_info: BigNumberish, custom_text: BigNumberish };
-export type KombiMetadataOutput = { head_light: BN, bumper: BN, antenna: BN, mirror: BN, screens: BN, side_step: BN, kombi_type: BN, mileage: BN, birth_date: BN, engine_info: BN, custom_text: BN };
+export type KombiMetadataInput = { head_light: BigNumberish, bumper: BigNumberish, antenna: BigNumberish, mirror: BigNumberish, screens: BigNumberish, side_step: BigNumberish, kombi_type: BigNumberish, mileage: BigNumberish, birth_date: BigNumberish, engine_info: BigNumberish, custom_text: BigNumberish, kombi_id: BigNumberish };
+export type KombiMetadataOutput = { head_light: BN, bumper: BN, antenna: BN, mirror: BN, screens: BN, side_step: BN, kombi_type: BN, mileage: BN, birth_date: BN, engine_info: BN, custom_text: BN, kombi_id: BN };
 export type KombiMintedEventInput = { asset_id: AssetIdInput, metadata: KombiMetadataInput, to: IdentityInput };
 export type KombiMintedEventOutput = { asset_id: AssetIdOutput, metadata: KombiMetadataOutput, to: IdentityOutput };
 export type OwnershipSetInput = { new_owner: IdentityInput };
@@ -499,6 +499,10 @@ const abi = {
         },
         {
           "name": "custom_text",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "kombi_id",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
@@ -1038,22 +1042,22 @@ const abi = {
     {
       "name": "INITIAL_OWNER",
       "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
-      "offset": 79520
+      "offset": 79664
     },
     {
       "name": "NAME",
       "concreteTypeId": "48e8455800b58e79d9db5ac584872b19d307a74a81dcad1d1f9ca34da17e1b31",
-      "offset": 79560
+      "offset": 79704
     },
     {
       "name": "SYMBOL",
       "concreteTypeId": "0a92c8e0f509a2d3a66f68dd50408ce45a1a2596803b0bc983a69b34bd40dad2",
-      "offset": 79608
+      "offset": 79752
     },
     {
       "name": "PARTS_ADDRESS",
       "concreteTypeId": "29c10735d33b5159f0c71ee1dbd17b36a3e69e41f00fab0d42e1bd9f428d8a54",
-      "offset": 79576
+      "offset": 79720
     }
   ]
 };

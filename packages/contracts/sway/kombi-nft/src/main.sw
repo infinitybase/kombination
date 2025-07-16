@@ -97,7 +97,7 @@ pub fn u64_to_ascii_string(num: u64) -> String {
 }
 
 #[storage(read)]
-fn random_metadata(seed: u64) -> KombiMetadata {
+fn random_metadata(seed: u64, kombi_id: u64) -> KombiMetadata {
     let head_light = storage.component_types.get(ComponentType::HeadLight).try_read().unwrap_or(0);
     let bumper = storage.component_types.get(ComponentType::Bumper).try_read().unwrap_or(0);
     let antenna = storage.component_types.get(ComponentType::Antenna).try_read().unwrap_or(0);
@@ -110,21 +110,22 @@ fn random_metadata(seed: u64) -> KombiMetadata {
 
     KombiMetadata {
         head_light: seed % head_light,
-        bumper: seed % bumper,
-        antenna: seed % antenna,
-        mirror: seed % mirror,
-        screens: seed % screens,
-        side_step: seed % side_step,
-        kombi_type: seed % kombi_type,
+        bumper: (seed >> 8) % bumper,
+        antenna: (seed >> 16) % antenna,
+        mirror: (seed >> 24) % mirror,
+        screens: (seed >> 32) % screens,
+        side_step: (seed >> 40) % side_step,
+        kombi_type: (seed >> 48) % kombi_type,
+        engine_info: (seed >> 56) % engine_info,
+        custom_text: (seed >> 64) % custom_text,
         mileage: seed % 500000, // 0-500km
         birth_date: timestamp(),
-        engine_info: seed % engine_info,
-        custom_text: seed % custom_text,
+        kombi_id: kombi_id,
     }
 }
 
 #[storage(read, write)]
-fn generate_json_metadata(kombi_id: u64, asset_id: AssetId, image_uri: String) -> Option<String> {
+fn generate_json_metadata(asset_id: AssetId, image_uri: String) -> Option<String> {
     let metadata = storage.metadata.get(asset_id).try_read();
     if metadata.is_none() {
         return None;
@@ -132,7 +133,7 @@ fn generate_json_metadata(kombi_id: u64, asset_id: AssetId, image_uri: String) -
 
     let metadata = metadata.unwrap();
     let json = JSONBuilder::new()
-        .add_property("name", concat(String::from_ascii_str("Kombi #"), u64_to_ascii_string(kombi_id)).as_str())
+        .add_property("name", concat(String::from_ascii_str("Kombi #"), u64_to_ascii_string(metadata.kombi_id)).as_str())
         .add_property("image", image_uri.as_str());
 
     let head_light = storage.component_metadata.get((ComponentType::HeadLight, metadata.head_light)).read_slice().unwrap();
@@ -227,7 +228,7 @@ impl KombiNFT for Contract {
         );
 
         let value = seed(total_assets);
-        let metadata = random_metadata(value);
+        let metadata = random_metadata(value, total_assets);
 
         storage.metadata.insert(asset_id, metadata);
 
@@ -238,7 +239,7 @@ impl KombiNFT for Contract {
         let asset_bytes = b256_to_ascii_bytes(asset_id.bits());
         
         let image_uri = generate_uri(base_uri, asset_bytes, "/image.png");
-        let metadata_uri = generate_json_metadata(total_assets, asset_id, image_uri).unwrap();
+        let metadata_uri = generate_json_metadata(asset_id, image_uri).unwrap();
 
         _set_metadata(storage.asset_metadata, asset_id, String::from_ascii_str("uri"), Metadata::String(metadata_uri));
         _set_metadata(storage.asset_metadata, asset_id, String::from_ascii_str("image"), Metadata::String(image_uri));
