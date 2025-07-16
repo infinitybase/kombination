@@ -49,7 +49,7 @@ use sway_libs::{
 };
 use std::{storage::storage_string::*, string::String};
 use kombi_nft_abi::{ComponentAddedEvent, ComponentType, KombiMetadata, KombiMintedEvent};
-use kombination_lib::{seed::seed, string::{b256_to_ascii_bytes, concat}};
+use kombination_lib::{seed::seed, string::{b256_to_ascii_bytes, concat}, json::JSONBuilder};
 
 configurable {
     INITIAL_OWNER: Identity = Identity::Address(Address::zero()),
@@ -60,11 +60,40 @@ configurable {
 
 storage {
     total_assets: u64 = 0,
+    asset_metadata: StorageMetadata = StorageMetadata {},
     metadata: StorageMap<AssetId, KombiMetadata> = StorageMap {},
     total_supply: StorageMap<AssetId, u64> = StorageMap {},
     component_types: StorageMap<ComponentType, u64> = StorageMap {},
     component_metadata: StorageMap<(ComponentType, u64), StorageString> = StorageMap {},
     base_metadata_uri: StorageString = StorageString {},
+}
+
+pub fn u64_to_ascii_string(num: u64) -> String {
+    let mut num = num;
+    let mut bytes = Bytes::new();
+    let result = match num {
+        0 => {
+            bytes.push(48); // ascii for 0
+            bytes
+        }
+        _ => {
+            while num > 0 {
+                let mut be_bytes = (num % 10).to_be_bytes();
+                let digit = be_bytes.pop().unwrap() + 48;
+                bytes.push(digit);
+                num /= 10;
+            }
+            // there's no for loop???
+            let len = bytes.len();
+            let mut i = 0;
+            while i < len / 2 {
+                bytes.swap(i, len - i - 1);
+                i += 1;
+            }
+            bytes
+        }
+    };
+    String::from_ascii(result)
 }
 
 #[storage(read)]
@@ -92,6 +121,48 @@ fn random_metadata(seed: u64) -> KombiMetadata {
         engine_info: seed % engine_info,
         custom_text: seed % custom_text,
     }
+}
+
+#[storage(read, write)]
+fn generate_json_metadata(kombi_id: u64, asset_id: AssetId, image_uri: String) -> Option<String> {
+    let metadata = storage.metadata.get(asset_id).try_read();
+    if metadata.is_none() {
+        return None;
+    }
+
+    let metadata = metadata.unwrap();
+    let json = JSONBuilder::new()
+        .add_property("name", concat(String::from_ascii_str("Kombi #"), u64_to_ascii_string(kombi_id)).as_str())
+        .add_property("image", image_uri.as_str());
+
+    let head_light = storage.component_metadata.get((ComponentType::HeadLight, metadata.head_light)).read_slice().unwrap();
+    let bumper = storage.component_metadata.get((ComponentType::Bumper, metadata.bumper)).read_slice().unwrap();
+    let antenna = storage.component_metadata.get((ComponentType::Antenna, metadata.antenna)).read_slice().unwrap();
+    let mirror = storage.component_metadata.get((ComponentType::Mirror, metadata.mirror)).read_slice().unwrap();
+    let screens = storage.component_metadata.get((ComponentType::Screens, metadata.screens)).read_slice().unwrap();
+    let side_step = storage.component_metadata.get((ComponentType::SideStep, metadata.side_step)).read_slice().unwrap();
+    let kombi_type = storage.component_metadata.get((ComponentType::KombiType, metadata.kombi_type)).read_slice().unwrap();
+    let engine_info = storage.component_metadata.get((ComponentType::EngineInfo, metadata.engine_info)).read_slice().unwrap();
+    let custom_text = storage.component_metadata.get((ComponentType::CustomText, metadata.custom_text)).read_slice().unwrap();
+    let mileage = u64_to_ascii_string(metadata.mileage);
+    let birth_date = u64_to_ascii_string(metadata.birth_date);
+
+    let mut attributes: Vec<(str, str)> = Vec::new();
+    attributes.push(("Head Light", head_light.as_str()));
+    attributes.push(("Bumper", bumper.as_str()));
+    attributes.push(("Antenna", antenna.as_str()));
+    attributes.push(("Mirror", mirror.as_str()));
+    attributes.push(("Screens", screens.as_str()));
+    attributes.push(("Side Step", side_step.as_str()));
+    attributes.push(("Kombi Type", kombi_type.as_str()));
+    attributes.push(("Mileage", mileage.as_str()));
+    attributes.push(("Birth Date", birth_date.as_str()));
+    attributes.push(("Engine Info", engine_info.as_str()));
+    attributes.push(("Custom Text", custom_text.as_str()));
+
+    let json = json.add_property_array("attributes", attributes);
+
+    Some(json.as_base64())
 }
 
 fn generate_uri(base_uri: String, asset_bytes: Bytes, file_name: str) -> String {
@@ -165,20 +236,12 @@ impl KombiNFT for Contract {
         let sender = msg_sender().unwrap();
         let base_uri = storage.base_metadata_uri.read_slice().unwrap();
         let asset_bytes = b256_to_ascii_bytes(asset_id.bits());
+        
+        let image_uri = generate_uri(base_uri, asset_bytes, "/image.png");
+        let metadata_uri = generate_json_metadata(total_assets, asset_id, image_uri).unwrap();
 
-        SetMetadataEvent::new(
-            asset_id,
-            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))),
-            String::from_ascii_str("uri"),
-            sender,
-        ).log();
-
-        SetMetadataEvent::new(
-            asset_id,
-            Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))),
-            String::from_ascii_str("image"),
-            sender,
-        ).log();
+        _set_metadata(storage.asset_metadata, asset_id, String::from_ascii_str("uri"), Metadata::String(metadata_uri));
+        _set_metadata(storage.asset_metadata, asset_id, String::from_ascii_str("image"), Metadata::String(image_uri));
 
         log(KombiMintedEvent {
             asset_id: asset_id,
@@ -224,19 +287,7 @@ impl SRC20 for Contract {
 impl SRC7 for Contract {
     #[storage(read)]
     fn metadata(asset: AssetId, key: String) -> Option<Metadata> {
-        let total_supply = storage.total_supply.get(asset).try_read();
-        if total_supply.is_none() {
-            return None;
-        }
-
-        let base_uri = storage.base_metadata_uri.read_slice().unwrap();
-        let asset_bytes = b256_to_ascii_bytes(asset.bits());
-
-        match key.as_str() {
-            "uri" => Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/metadata.json"))),
-            "image" => Some(Metadata::String(generate_uri(base_uri, asset_bytes, "/image.png"))),
-            _ => None,
-        }
+        _metadata(storage.asset_metadata, asset, key)
     }
 }
 

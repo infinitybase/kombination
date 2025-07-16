@@ -25,6 +25,22 @@ source = "member"
 dependencies = ["std"]
 
 [[package]]
+name = "parts_nft"
+source = "member"
+dependencies = [
+    "kombination_lib",
+    "parts_nft_abi",
+    "standards",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "parts_nft_abi"
+source = "path+from-root-D7B677A091ACDD14"
+dependencies = ["std"]
+
+[[package]]
 name = "standards"
 source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.7.0#7d35df95e0b96dc8ad188ab169fbbeeac896aae8"
 dependencies = ["std"]

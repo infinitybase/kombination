@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, beforeAll } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { AssetId, Identity, callAndWait, get } from "./utils";
-import { KombiNftFactory } from "../src";
+import { Base64Script, KombiNftFactory } from "../src";
 import { ComponentTypeInput } from "../src/artifacts/contracts/KombiNft";
 import { BN, bn } from "fuels";
 
@@ -68,14 +68,43 @@ describe("KombiNft", () => {
     const balance = await wallet.getBalance(assetId);
     expect(balance.toString()).toBe("1");
 
-    const [uri, image] = await get(
-      contract.multiCall([
-        contract.functions.metadata(AssetId.toBits(assetId), "uri"),
-        contract.functions.metadata(AssetId.toBits(assetId), "image"),
-      ]),
+    const uri = await get(
+      contract.functions.metadata(AssetId.toBits(assetId), "uri"),
     );
 
-    expect(uri?.String).toBe(`${BASE_URI}${assetId}/metadata.json`);
-    expect(image?.String).toBe(`${BASE_URI}${assetId}/image.png`);
+    const uriString = uri?.String;
+
+    if (!uriString) {
+      throw new Error("No URI found");
+    }
+
+    const response = await fetch(uriString);
+    const data = await response.text();
+    const json = JSON.parse(data);
+
+    expect(json).toBeDefined();
+    expect(json.name).toBe("Kombi #0");
+    expect(json.image).toBe(`${BASE_URI}${assetId}/image.png`);
+    expect(json.attributes).toBeDefined();
+    expect(json.attributes.length).toBe(11);
+
+    const attributes = [
+      ["Head Light", "test"],
+      ["Bumper", "test"],
+      ["Antenna", "test"],
+      ["Mirror", "test"],
+      ["Screens", "test"],
+      ["Side Step", "test"],
+      ["Kombi Type", "test"],
+      ["Engine Info", "test"],
+      ["Custom Text", "test"],
+    ];
+
+    for (const [trait, value] of attributes) {
+      expect(
+        json.attributes.find((attribute) => attribute.trait_type === trait)
+          ?.value,
+      ).toBe(value);
+    }
   });
 });

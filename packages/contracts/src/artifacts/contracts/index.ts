@@ -14,3 +14,5 @@ export { KombinationExample } from './KombinationExample';
 export { KombinationExampleFactory } from './KombinationExampleFactory';
 export { KombiNft } from './KombiNft';
 export { KombiNftFactory } from './KombiNftFactory';
+export { PartsNft } from './PartsNft';
+export { PartsNftFactory } from './PartsNftFactory';

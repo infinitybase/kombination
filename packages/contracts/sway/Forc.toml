@@ -1,2 +1,7 @@
 [workspace]
-members = ["./kombination-example", "./kombi-nft", "./kombination-lib"]
+members = [
+    "./kombination-example", 
+    "./kombi-nft", 
+    "./kombination-lib",
+    "./parts-nft"
+]
