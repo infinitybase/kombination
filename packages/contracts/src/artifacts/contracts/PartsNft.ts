@@ -20,6 +20,28 @@ import type {
   InvokeFunction,
 } from 'fuels';
 
+import type { Enum } from "./common";
+
+export enum AccessErrorInput { NotOwner = 'NotOwner' };
+export enum AccessErrorOutput { NotOwner = 'NotOwner' };
+export enum AccessoryTypeInput { Item = 'Item', Wheels = 'Wheels', PaintJob = 'PaintJob' };
+export enum AccessoryTypeOutput { Item = 'Item', Wheels = 'Wheels', PaintJob = 'PaintJob' };
+export type IdentityInput = Enum<{ Address: AddressInput, ContractId: ContractIdInput }>;
+export type IdentityOutput = Enum<{ Address: AddressOutput, ContractId: ContractIdOutput }>;
+export enum InitializationErrorInput { CannotReinitialized = 'CannotReinitialized' };
+export enum InitializationErrorOutput { CannotReinitialized = 'CannotReinitialized' };
+
+export type AddressInput = { bits: string };
+export type AddressOutput = AddressInput;
+export type ContractIdInput = { bits: string };
+export type ContractIdOutput = ContractIdInput;
+export type OwnershipSetInput = { new_owner: IdentityInput };
+export type OwnershipSetOutput = { new_owner: IdentityOutput };
+
+export type PartsNftConfigurables = Partial<{
+  INITIAL_OWNER: IdentityInput;
+}>;
+
 const abi = {
   "programType": "contract",
   "specVersion": "1",
@@ -28,23 +50,185 @@ const abi = {
     {
       "type": "()",
       "concreteTypeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+    },
+    {
+      "type": "enum parts_nft_abi::AccessoryType",
+      "concreteTypeId": "d50ffef8104f64fa90e61aa8682af1ed3ca2322865a37b7e63485518da45971c",
+      "metadataTypeId": 1
+    },
+    {
+      "type": "enum standards::src5::AccessError",
+      "concreteTypeId": "3f702ea3351c9c1ece2b84048006c8034a24cbc2bad2e740d0412b4172951d3d",
+      "metadataTypeId": 2
+    },
+    {
+      "type": "enum std::identity::Identity",
+      "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
+      "metadataTypeId": 3
+    },
+    {
+      "type": "enum sway_libs::ownership::errors::InitializationError",
+      "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893",
+      "metadataTypeId": 4
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5",
+      "metadataTypeId": 7
     }
   ],
-  "metadataTypes": [],
+  "metadataTypes": [
+    {
+      "type": "b256",
+      "metadataTypeId": 0
+    },
+    {
+      "type": "enum parts_nft_abi::AccessoryType",
+      "metadataTypeId": 1,
+      "components": [
+        {
+          "name": "Item",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "Wheels",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "PaintJob",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        }
+      ]
+    },
+    {
+      "type": "enum standards::src5::AccessError",
+      "metadataTypeId": 2,
+      "components": [
+        {
+          "name": "NotOwner",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        }
+      ]
+    },
+    {
+      "type": "enum std::identity::Identity",
+      "metadataTypeId": 3,
+      "components": [
+        {
+          "name": "Address",
+          "typeId": 5
+        },
+        {
+          "name": "ContractId",
+          "typeId": 6
+        }
+      ]
+    },
+    {
+      "type": "enum sway_libs::ownership::errors::InitializationError",
+      "metadataTypeId": 4,
+      "components": [
+        {
+          "name": "CannotReinitialized",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        }
+      ]
+    },
+    {
+      "type": "struct std::address::Address",
+      "metadataTypeId": 5,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": 0
+        }
+      ]
+    },
+    {
+      "type": "struct std::contract_id::ContractId",
+      "metadataTypeId": 6,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": 0
+        }
+      ]
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "metadataTypeId": 7,
+      "components": [
+        {
+          "name": "new_owner",
+          "typeId": 3
+        }
+      ]
+    }
+  ],
   "functions": [
     {
       "inputs": [],
-      "name": "hello",
+      "name": "acessory_of_day",
+      "output": "d50ffef8104f64fa90e61aa8682af1ed3ca2322865a37b7e63485518da45971c",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "admin",
+          "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335"
+        }
+      ],
+      "name": "constructor",
       "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
-      "attributes": null
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
     }
   ],
-  "loggedTypes": [],
+  "loggedTypes": [
+    {
+      "logId": "2161305517876418151",
+      "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893"
+    },
+    {
+      "logId": "16280289466020123285",
+      "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5"
+    },
+    {
+      "logId": "4571204900286667806",
+      "concreteTypeId": "3f702ea3351c9c1ece2b84048006c8034a24cbc2bad2e740d0412b4172951d3d"
+    }
+  ],
   "messagesTypes": [],
-  "configurables": []
+  "configurables": [
+    {
+      "name": "INITIAL_OWNER",
+      "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
+      "offset": 13824
+    }
+  ]
 };
 
-const storageSlots: StorageSlot[] = [];
+const storageSlots: StorageSlot[] = [
+  {
+    "key": "53636b06b01bf31740d6d597085847369633023cdacd74ced1f2599e498bca82",
+    "value": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+];
 
 export class PartsNftInterface extends Interface {
   constructor() {
@@ -52,7 +236,8 @@ export class PartsNftInterface extends Interface {
   }
 
   declare functions: {
-    hello: FunctionFragment;
+    acessory_of_day: FunctionFragment;
+    constructor: FunctionFragment;
   };
 }
 
@@ -62,7 +247,8 @@ export class PartsNft extends __Contract {
 
   declare interface: PartsNftInterface;
   declare functions: {
-    hello: InvokeFunction<[], void>;
+    acessory_of_day: InvokeFunction<[], AccessoryTypeOutput>;
+    constructor: InvokeFunction<[admin: IdentityInput], void>;
   };
 
   constructor(

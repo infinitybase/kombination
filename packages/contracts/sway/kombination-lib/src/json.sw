@@ -12,7 +12,6 @@ fn remove_escape_chars(input: Bytes) -> String {
     let mut output = Bytes::new();
     let mut i = 0;
     while i < input.len() {
-        log(input.get(i).unwrap());
         if input.get(i).unwrap() != ESCAPE_CHARS {
             output.push(input.get(i).unwrap());
         }

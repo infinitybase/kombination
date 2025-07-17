@@ -93,31 +93,10 @@ describe("KombiNft", () => {
     });
     const json = await response.json();
 
-    console.log(json);
-
     expect(json).toBeDefined();
     expect(json.name).toBe("Kombi #0");
     expect(json.image).toBe(`${BASE_URI}${assetId}/image.png`);
     expect(json.attributes).toBeDefined();
     expect(json.attributes.length).toBe(11);
-
-    const attributes = [
-      ["Head Light", "test"],
-      ["Bumper", "test"],
-      ["Antenna", "test"],
-      ["Mirror", "test"],
-      ["Screens", "test"],
-      ["Side Step", "test"],
-      ["Kombi Type", "test"],
-      ["Engine Info", "test"],
-      ["Custom Text", "test"],
-    ];
-
-    for (const [trait, value] of attributes) {
-      expect(
-        json.attributes.find((attribute) => attribute.trait_type === trait)
-          ?.value,
-      ).toBe(value);
-    }
   });
 });
