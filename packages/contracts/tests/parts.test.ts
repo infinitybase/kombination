@@ -2,7 +2,10 @@ import { describe, it, beforeAll, afterAll, expect } from "bun:test";
 import { launchTestNode } from "fuels/test-utils";
 import { Identity, callAndWait, get } from "./utils";
 import { PartsNftFactory } from "../src";
-import { AccessoryTypeOutput } from "../src/artifacts/contracts/PartsNft";
+import {
+  AccessoryTypeInput,
+  AccessoryTypeOutput,
+} from "../src/artifacts/contracts/PartsNft";
 import { DateTime } from "fuels";
 
 const testSetup = async () => {
@@ -77,5 +80,19 @@ describe("PartsNft", () => {
       contract.functions.acessory_of_day(),
     );
     expect(day4).toBe(AccessoryTypeOutput.Item);
+  });
+
+  it("should add accessory", async () => {
+    const { contract } = setup;
+
+    await callAndWait(
+      contract.functions.add_accessory(AccessoryTypeInput.Item, "Item"),
+    );
+
+    const item = await get(
+      contract.functions.get_accessory(AccessoryTypeInput.Item),
+    );
+
+    expect(item?.toString()).toBe("1");
   });
 });

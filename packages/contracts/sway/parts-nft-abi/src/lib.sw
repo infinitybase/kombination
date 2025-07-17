@@ -46,7 +46,9 @@ pub struct AccessoryMetadata {
     pub rarity: u64,
 }
 
-abi PartsNft {
-    #[storage(read)]
-    fn acessory_of_day() -> AccessoryType;
+pub struct AccessoryAddedEvent {
+    pub accessory: AccessoryType,
+    pub accessory_id: u64,
+    pub value: String,
+    pub sender: Identity,
 }

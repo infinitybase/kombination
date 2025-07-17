@@ -16,11 +16,15 @@ import type {
   Account,
   StorageSlot,
   Address,
+  BigNumberish,
+  BN,
+  Bytes,
   FunctionFragment,
   InvokeFunction,
+  StdString,
 } from 'fuels';
 
-import type { Enum } from "./common";
+import type { Option, Enum } from "./common";
 
 export enum AccessErrorInput { NotOwner = 'NotOwner' };
 export enum AccessErrorOutput { NotOwner = 'NotOwner' };
@@ -31,6 +35,8 @@ export type IdentityOutput = Enum<{ Address: AddressOutput, ContractId: Contract
 export enum InitializationErrorInput { CannotReinitialized = 'CannotReinitialized' };
 export enum InitializationErrorOutput { CannotReinitialized = 'CannotReinitialized' };
 
+export type AccessoryAddedEventInput = { accessory: AccessoryTypeInput, accessory_id: BigNumberish, value: StdString, sender: IdentityInput };
+export type AccessoryAddedEventOutput = { accessory: AccessoryTypeOutput, accessory_id: BN, value: StdString, sender: IdentityOutput };
 export type AddressInput = { bits: string };
 export type AddressOutput = AddressInput;
 export type ContractIdInput = { bits: string };
@@ -67,14 +73,36 @@ const abi = {
       "metadataTypeId": 3
     },
     {
+      "type": "enum std::option::Option<u64>",
+      "concreteTypeId": "d852149004cc9ec0bbe7dc4e37bffea1d41469b759512b6136f2e865a4c06e7d",
+      "metadataTypeId": 4,
+      "typeArguments": [
+        "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+      ]
+    },
+    {
       "type": "enum sway_libs::ownership::errors::InitializationError",
       "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893",
-      "metadataTypeId": 4
+      "metadataTypeId": 5
+    },
+    {
+      "type": "struct parts_nft_abi::AccessoryAddedEvent",
+      "concreteTypeId": "7a6acc77b58e33a064e033056bbf16babe41425fe3adb4ddf1a4eeecce48ea01",
+      "metadataTypeId": 8
+    },
+    {
+      "type": "struct std::string::String",
+      "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c",
+      "metadataTypeId": 13
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipSet",
       "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5",
-      "metadataTypeId": 7
+      "metadataTypeId": 14
+    },
+    {
+      "type": "u64",
+      "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
     }
   ],
   "metadataTypes": [
@@ -116,17 +144,34 @@ const abi = {
       "components": [
         {
           "name": "Address",
-          "typeId": 5
+          "typeId": 9
         },
         {
           "name": "ContractId",
-          "typeId": 6
+          "typeId": 12
         }
       ]
     },
     {
-      "type": "enum sway_libs::ownership::errors::InitializationError",
+      "type": "enum std::option::Option",
       "metadataTypeId": 4,
+      "components": [
+        {
+          "name": "None",
+          "typeId": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d"
+        },
+        {
+          "name": "Some",
+          "typeId": 6
+        }
+      ],
+      "typeParameters": [
+        6
+      ]
+    },
+    {
+      "type": "enum sway_libs::ownership::errors::InitializationError",
+      "metadataTypeId": 5,
       "components": [
         {
           "name": "CannotReinitialized",
@@ -135,18 +180,76 @@ const abi = {
       ]
     },
     {
+      "type": "generic T",
+      "metadataTypeId": 6
+    },
+    {
+      "type": "raw untyped ptr",
+      "metadataTypeId": 7
+    },
+    {
+      "type": "struct parts_nft_abi::AccessoryAddedEvent",
+      "metadataTypeId": 8,
+      "components": [
+        {
+          "name": "accessory",
+          "typeId": 1
+        },
+        {
+          "name": "accessory_id",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "value",
+          "typeId": 13
+        },
+        {
+          "name": "sender",
+          "typeId": 3
+        }
+      ]
+    },
+    {
       "type": "struct std::address::Address",
-      "metadataTypeId": 5,
+      "metadataTypeId": 9,
       "components": [
         {
           "name": "bits",
           "typeId": 0
+        }
+      ]
+    },
+    {
+      "type": "struct std::bytes::Bytes",
+      "metadataTypeId": 10,
+      "components": [
+        {
+          "name": "buf",
+          "typeId": 11
+        },
+        {
+          "name": "len",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        }
+      ]
+    },
+    {
+      "type": "struct std::bytes::RawBytes",
+      "metadataTypeId": 11,
+      "components": [
+        {
+          "name": "ptr",
+          "typeId": 7
+        },
+        {
+          "name": "cap",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         }
       ]
     },
     {
       "type": "struct std::contract_id::ContractId",
-      "metadataTypeId": 6,
+      "metadataTypeId": 12,
       "components": [
         {
           "name": "bits",
@@ -155,8 +258,18 @@ const abi = {
       ]
     },
     {
+      "type": "struct std::string::String",
+      "metadataTypeId": 13,
+      "components": [
+        {
+          "name": "bytes",
+          "typeId": 10
+        }
+      ]
+    },
+    {
       "type": "struct sway_libs::ownership::events::OwnershipSet",
-      "metadataTypeId": 7,
+      "metadataTypeId": 14,
       "components": [
         {
           "name": "new_owner",
@@ -170,6 +283,47 @@ const abi = {
       "inputs": [],
       "name": "acessory_of_day",
       "output": "d50ffef8104f64fa90e61aa8682af1ed3ca2322865a37b7e63485518da45971c",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "accessory",
+          "concreteTypeId": "d50ffef8104f64fa90e61aa8682af1ed3ca2322865a37b7e63485518da45971c"
+        },
+        {
+          "name": "value",
+          "concreteTypeId": "9a7f1d3e963c10e0a4ea70a8e20a4813d1dc5682e28f74cb102ae50d32f7f98c"
+        }
+      ],
+      "name": "add_accessory",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "accessory",
+          "concreteTypeId": "d50ffef8104f64fa90e61aa8682af1ed3ca2322865a37b7e63485518da45971c"
+        }
+      ],
+      "name": "get_accessory",
+      "output": "d852149004cc9ec0bbe7dc4e37bffea1d41469b759512b6136f2e865a4c06e7d",
       "attributes": [
         {
           "name": "storage",
@@ -201,6 +355,10 @@ const abi = {
   ],
   "loggedTypes": [
     {
+      "logId": "8821087634677707680",
+      "concreteTypeId": "7a6acc77b58e33a064e033056bbf16babe41425fe3adb4ddf1a4eeecce48ea01"
+    },
+    {
       "logId": "2161305517876418151",
       "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893"
     },
@@ -218,7 +376,7 @@ const abi = {
     {
       "name": "INITIAL_OWNER",
       "concreteTypeId": "ab7cd04e05be58e3fc15d424c2c4a57f824a2a2d97d67252440a3925ebdc1335",
-      "offset": 13824
+      "offset": 22416
     }
   ]
 };
@@ -237,6 +395,8 @@ export class PartsNftInterface extends Interface {
 
   declare functions: {
     acessory_of_day: FunctionFragment;
+    add_accessory: FunctionFragment;
+    get_accessory: FunctionFragment;
     constructor: FunctionFragment;
   };
 }
@@ -248,6 +408,8 @@ export class PartsNft extends __Contract {
   declare interface: PartsNftInterface;
   declare functions: {
     acessory_of_day: InvokeFunction<[], AccessoryTypeOutput>;
+    add_accessory: InvokeFunction<[accessory: AccessoryTypeInput, value: StdString], void>;
+    get_accessory: InvokeFunction<[accessory: AccessoryTypeInput], Option<BN>>;
     constructor: InvokeFunction<[admin: IdentityInput], void>;
   };
 

@@ -1,6 +1,8 @@
 contract;
 
 use std::block::timestamp;
+use std::string::String;
+use std::storage::storage_string::*;
 
 use sway_libs::{
     admin::{
@@ -17,7 +19,7 @@ use sway_libs::{
     },
 };
 
-use parts_nft_abi::{PartsNft, AccessoryType};
+use parts_nft_abi::{AccessoryType, AccessoryAddedEvent};
 
 const ACCESSORY_CYCLE_LENGTH: u64 = 3;
 
@@ -27,6 +29,8 @@ configurable {
 
 storage {
     start_date: u64 = 0,
+    accessory_types: StorageMap<AccessoryType, u64> = StorageMap {},
+    accessory_metadata: StorageMap<(AccessoryType, u64), StorageString> = StorageMap {},
 }
 
 #[storage(read)]
@@ -43,10 +47,44 @@ fn acessory_of_day() -> AccessoryType {
     }
 }
 
+abi PartsNft {
+    #[storage(read)]
+    fn acessory_of_day() -> AccessoryType;
+
+    #[storage(read, write)]
+    fn add_accessory(accessory: AccessoryType, value: String);
+
+    #[storage(read)]
+    fn get_accessory(accessory: AccessoryType) -> Option<u64>;
+}
+
 impl PartsNft for Contract {
     #[storage(read)]
     fn acessory_of_day() -> AccessoryType {
         acessory_of_day()
+    }
+
+    #[storage(read, write)]
+    fn add_accessory(accessory: AccessoryType, value: String) {
+        let accessory_id = storage.accessory_types.get(accessory).try_read().unwrap_or(0);  
+        let _ = storage.accessory_metadata.try_insert((accessory, accessory_id), StorageString {});
+        storage
+            .accessory_metadata
+            .get((accessory, accessory_id))
+            .write_slice(value);
+        storage.accessory_types.insert(accessory, accessory_id + 1);
+
+        log(AccessoryAddedEvent {
+            accessory: accessory,
+            accessory_id: accessory_id,
+            value: value,
+            sender: msg_sender().unwrap(),
+        });
+    }
+
+    #[storage(read)]
+    fn get_accessory(accessory: AccessoryType) -> Option<u64> {
+        storage.accessory_types.get(accessory).try_read()
     }
 }
 
