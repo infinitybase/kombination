@@ -15,6 +15,8 @@ pub enum AuctionError {
     AuctionNotFound: AuctionId,
     /// The bid amount is less than 5% of the current highest bid
     BidTooLow: u64,
+    /// The bid was not found for the given identity
+    BidNotFound: Identity,
     /// The bid amount is less than the initial bid
     InitialBidTooLow: u64,
     /// The caller is not the owner of the contract
@@ -25,6 +27,10 @@ pub enum AuctionError {
     AuctionAlreadyExists: AssetId,
     /// The auction end time is in the past
     EndTimeInPast: u64,
+    /// The bidder identity was not found
+    BidderNotFound: Identity,
+    /// The sender is the highest bidder
+    SenderIsHighestBidder: Identity,
 }
 
 abi KombinationAuction {
@@ -121,6 +127,24 @@ abi KombinationAuction {
     ///
     #[storage(read)]
     fn is_active(auction_id: AuctionId) -> bool;
+
+    /// Withdraw a bid from an auction
+    /// ///
+    /// # Arguments
+    /// ///
+    /// * `auction_id`: The ID of the auction to withdraw the bid from
+    /// /// # Reverts
+    /// ///
+    /// * If the auction is not found
+    /// * If the caller is not the bidder
+    /// * If the bid was not found for the given identity
+    /// * If the contract is paused
+    /// * If the sender is the highest bidder
+    /// # Events
+    /// ///
+    /// * `BidWithdrawnEvent`: Emitted when a bid is successfully withdrawn
+    #[storage(read, write)]
+    fn withdraw_bid(auction_id: AuctionId);
 }
 
 /// Interface for managing ownership of the contract

@@ -20,3 +20,9 @@ pub struct AuctionEndedEvent {
     pub winner: Identity,
     pub winning_bid: u64,
 }
+
+pub struct BidWithdrawnEvent {
+    pub auction_id: AuctionId,
+    pub bidder: Identity,
+    pub amount: u64,
+}

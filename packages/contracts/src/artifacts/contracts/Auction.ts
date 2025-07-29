@@ -26,8 +26,8 @@ import type { Option, Enum } from "./common";
 
 export enum AccessErrorInput { NotOwner = 'NotOwner' };
 export enum AccessErrorOutput { NotOwner = 'NotOwner' };
-export type AuctionErrorInput = Enum<{ AuctionNotActive: string, AuctionNotFound: string, BidTooLow: BigNumberish, InitialBidTooLow: BigNumberish, NotOwner: undefined, ContractPaused: undefined, AuctionAlreadyExists: AssetIdInput, EndTimeInPast: BigNumberish }>;
-export type AuctionErrorOutput = Enum<{ AuctionNotActive: string, AuctionNotFound: string, BidTooLow: BN, InitialBidTooLow: BN, NotOwner: void, ContractPaused: void, AuctionAlreadyExists: AssetIdOutput, EndTimeInPast: BN }>;
+export type AuctionErrorInput = Enum<{ AuctionNotActive: string, AuctionNotFound: string, BidTooLow: BigNumberish, BidNotFound: IdentityInput, InitialBidTooLow: BigNumberish, NotOwner: undefined, ContractPaused: undefined, AuctionAlreadyExists: AssetIdInput, EndTimeInPast: BigNumberish, BidderNotFound: IdentityInput, SenderIsHighestBidder: IdentityInput }>;
+export type AuctionErrorOutput = Enum<{ AuctionNotActive: string, AuctionNotFound: string, BidTooLow: BN, BidNotFound: IdentityOutput, InitialBidTooLow: BN, NotOwner: void, ContractPaused: void, AuctionAlreadyExists: AssetIdOutput, EndTimeInPast: BN, BidderNotFound: IdentityOutput, SenderIsHighestBidder: IdentityOutput }>;
 export type IdentityInput = Enum<{ Address: AddressInput, ContractId: ContractIdInput }>;
 export type IdentityOutput = Enum<{ Address: AddressOutput, ContractId: ContractIdOutput }>;
 export enum InitializationErrorInput { CannotReinitialized = 'CannotReinitialized' };
@@ -45,6 +45,8 @@ export type AuctionStartedEventInput = { auction_id: string, asset_id: AssetIdIn
 export type AuctionStartedEventOutput = { auction_id: string, asset_id: AssetIdOutput, end_time: BN, initial_bid: BN };
 export type BidPlacedEventInput = { auction_id: string, bidder: IdentityInput, amount: BigNumberish };
 export type BidPlacedEventOutput = { auction_id: string, bidder: IdentityOutput, amount: BN };
+export type BidWithdrawnEventInput = { auction_id: string, bidder: IdentityInput, amount: BigNumberish };
+export type BidWithdrawnEventOutput = { auction_id: string, bidder: IdentityOutput, amount: BN };
 export type ContractIdInput = { bits: string };
 export type ContractIdOutput = ContractIdInput;
 export type OwnershipSetInput = { new_owner: IdentityInput };
@@ -53,6 +55,11 @@ export type OwnershipTransferredInput = { new_owner: IdentityInput, previous_own
 export type OwnershipTransferredOutput = { new_owner: IdentityOutput, previous_owner: IdentityOutput };
 export type StartAuctionInput = { end_time: BigNumberish, asset_id: AssetIdInput, initial_bid: BigNumberish };
 export type StartAuctionOutput = { end_time: BN, asset_id: AssetIdOutput, initial_bid: BN };
+
+export type AuctionConfigurables = Partial<{
+  MIN_BID_INCREASE: BigNumberish;
+  TIME_BUFFER: BigNumberish;
+}>;
 
 const abi = {
   "programType": "contract",
@@ -117,19 +124,24 @@ const abi = {
       "metadataTypeId": 10
     },
     {
+      "type": "struct events::BidWithdrawnEvent",
+      "concreteTypeId": "bc3782ab7b2a93ce4049ea5147c1dc21be037f83c20161e440f55e532a398493",
+      "metadataTypeId": 11
+    },
+    {
       "type": "struct interfaces::StartAuction",
       "concreteTypeId": "ab30248bb185f18df7dff31d06861bccd4bea762e95fe091f2a869b323450e2b",
-      "metadataTypeId": 11
+      "metadataTypeId": 12
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipSet",
       "concreteTypeId": "e1ef35033ea9d2956f17c3292dea4a46ce7d61fdf37bbebe03b7b965073f43b5",
-      "metadataTypeId": 15
+      "metadataTypeId": 16
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipTransferred",
       "concreteTypeId": "b3fffbcb3158d7c010c31b194b60fb7857adb4ad61bdcf4b8b42958951d9f308",
-      "metadataTypeId": 16
+      "metadataTypeId": 17
     },
     {
       "type": "u64",
@@ -174,6 +186,10 @@ const abi = {
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
         {
+          "name": "BidNotFound",
+          "typeId": 3
+        },
+        {
           "name": "InitialBidTooLow",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
         },
@@ -187,11 +203,19 @@ const abi = {
         },
         {
           "name": "AuctionAlreadyExists",
-          "typeId": 13
+          "typeId": 14
         },
         {
           "name": "EndTimeInPast",
           "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        },
+        {
+          "name": "BidderNotFound",
+          "typeId": 3
+        },
+        {
+          "name": "SenderIsHighestBidder",
+          "typeId": 3
         }
       ]
     },
@@ -211,11 +235,11 @@ const abi = {
       "components": [
         {
           "name": "Address",
-          "typeId": 12
+          "typeId": 13
         },
         {
           "name": "ContractId",
-          "typeId": 14
+          "typeId": 15
         }
       ]
     },
@@ -284,7 +308,7 @@ const abi = {
         },
         {
           "name": "asset_id",
-          "typeId": 13
+          "typeId": 14
         },
         {
           "name": "end_time",
@@ -315,8 +339,26 @@ const abi = {
       ]
     },
     {
-      "type": "struct interfaces::StartAuction",
+      "type": "struct events::BidWithdrawnEvent",
       "metadataTypeId": 11,
+      "components": [
+        {
+          "name": "auction_id",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        },
+        {
+          "name": "bidder",
+          "typeId": 3
+        },
+        {
+          "name": "amount",
+          "typeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0"
+        }
+      ]
+    },
+    {
+      "type": "struct interfaces::StartAuction",
+      "metadataTypeId": 12,
       "components": [
         {
           "name": "end_time",
@@ -324,7 +366,7 @@ const abi = {
         },
         {
           "name": "asset_id",
-          "typeId": 13
+          "typeId": 14
         },
         {
           "name": "initial_bid",
@@ -334,16 +376,6 @@ const abi = {
     },
     {
       "type": "struct std::address::Address",
-      "metadataTypeId": 12,
-      "components": [
-        {
-          "name": "bits",
-          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
-        }
-      ]
-    },
-    {
-      "type": "struct std::asset_id::AssetId",
       "metadataTypeId": 13,
       "components": [
         {
@@ -353,7 +385,7 @@ const abi = {
       ]
     },
     {
-      "type": "struct std::contract_id::ContractId",
+      "type": "struct std::asset_id::AssetId",
       "metadataTypeId": 14,
       "components": [
         {
@@ -363,8 +395,18 @@ const abi = {
       ]
     },
     {
-      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "type": "struct std::contract_id::ContractId",
       "metadataTypeId": 15,
+      "components": [
+        {
+          "name": "bits",
+          "typeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        }
+      ]
+    },
+    {
+      "type": "struct sway_libs::ownership::events::OwnershipSet",
+      "metadataTypeId": 16,
       "components": [
         {
           "name": "new_owner",
@@ -374,7 +416,7 @@ const abi = {
     },
     {
       "type": "struct sway_libs::ownership::events::OwnershipTransferred",
-      "metadataTypeId": 16,
+      "metadataTypeId": 17,
       "components": [
         {
           "name": "new_owner",
@@ -401,7 +443,7 @@ const abi = {
         {
           "name": "doc-comment",
           "arguments": [
-            " Places a bid on an auction."
+            " Ends an auction and transfers the asset to the highest bidder."
           ]
         },
         {
@@ -426,7 +468,7 @@ const abi = {
         {
           "name": "doc-comment",
           "arguments": [
-            " Places a bid on an auction."
+            " Gets the highest bid for an auction."
           ]
         },
         {
@@ -515,6 +557,31 @@ const abi = {
           "arguments": [
             "write",
             "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "auction_id",
+          "concreteTypeId": "7c5ee1cecf5f8eacd1284feb5f0bf2bdea533a51e2f0c9aabe9236d335989f3b"
+        }
+      ],
+      "name": "withdraw_bid",
+      "output": "2e38e77b22c314a449e91fafed92a43826ac6aa403ae6a8acb6cf58239fbaf5d",
+      "attributes": [
+        {
+          "name": "doc-comment",
+          "arguments": [
+            " Withdraws a bid from an auction."
+          ]
+        },
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
           ]
         }
       ]
@@ -622,6 +689,10 @@ const abi = {
       "concreteTypeId": "4019354d52eeef759a21c8172975440be84d757a4480059ed0d5ce08d588a0f3"
     },
     {
+      "logId": "13562452475866944462",
+      "concreteTypeId": "bc3782ab7b2a93ce4049ea5147c1dc21be037f83c20161e440f55e532a398493"
+    },
+    {
       "logId": "2161305517876418151",
       "concreteTypeId": "1dfe7feadc1d9667a4351761230f948744068a090fe91b1bc6763a90ed5d3893"
     },
@@ -635,7 +706,18 @@ const abi = {
     }
   ],
   "messagesTypes": [],
-  "configurables": []
+  "configurables": [
+    {
+      "name": "MIN_BID_INCREASE",
+      "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0",
+      "offset": 33328
+    },
+    {
+      "name": "TIME_BUFFER",
+      "concreteTypeId": "1506e6f44c1d6291cdf46395a8e573276a4fa79e8ace3fc891e092ef32d1b0a0",
+      "offset": 33336
+    }
+  ]
 };
 
 const storageSlots: StorageSlot[] = [];
@@ -651,6 +733,7 @@ export class AuctionInterface extends Interface {
     is_active: FunctionFragment;
     place_bid: FunctionFragment;
     start_auction: FunctionFragment;
+    withdraw_bid: FunctionFragment;
     initialize: FunctionFragment;
     transfer_ownership: FunctionFragment;
     is_paused: FunctionFragment;
@@ -670,6 +753,7 @@ export class Auction extends __Contract {
     is_active: InvokeFunction<[auction_id: string], boolean>;
     place_bid: InvokeFunction<[auction_id: string, amount: BigNumberish], void>;
     start_auction: InvokeFunction<[payload: StartAuctionInput], string>;
+    withdraw_bid: InvokeFunction<[auction_id: string], void>;
     initialize: InvokeFunction<[owner: IdentityInput], void>;
     transfer_ownership: InvokeFunction<[new_owner: IdentityInput], void>;
     is_paused: InvokeFunction<[], boolean>;
