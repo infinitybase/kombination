@@ -1,2 +1,2 @@
 [workspace]
-members = ["./kombination_lib", "./kombination_example"]
+members = ["./kombination_example", "./auction"]
