@@ -1,0 +1,10 @@
+/* Tailwind css v4 doesn't use tailwind config anymore */
+@layer theme, base, components, utilities;
+@import 'tailwindcss';
+
+/* morden normalize */
+@import "tailwindcss/preflight.css" layer(base);
+ 
+@theme {
+  --color-regal-blue: #243c5a; 
+}

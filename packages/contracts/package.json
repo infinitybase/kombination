@@ -1,5 +1,5 @@
 {
-  "name": "@packages/contracts",
+  "name": "@kombination/contracts",
   "main": "src/index.ts",
   "module": "src/index.ts",
   "private": true,
@@ -8,7 +8,7 @@
     "test": "bun test"
   },
   "devDependencies": {
-    "@packages/ts-config": "*",
+    "@kombination/ts-config": "*",
     "@types/bun": "latest"
   },
   "peerDependencies": {

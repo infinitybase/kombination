@@ -1,4 +1,4 @@
 {
-	"extends": "@packages/ts-config/base.json",
+	"extends": "@kombination/ts-config/base.json",
 	"exclude": ["dist"]
 }

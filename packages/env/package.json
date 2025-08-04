@@ -13,7 +13,7 @@
 		"zod": "^3.24.2"
 	},
 	"devDependencies": {
-		"@packages/ts-config": "*",
+		"@kombination/ts-config": "*",
 		"tsup": "^8.4.0"
 	}
 }
