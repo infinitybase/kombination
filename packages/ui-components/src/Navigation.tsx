@@ -28,7 +28,7 @@ export function Navigation() {
       <div className="w-full max-w-[1600px] flex items-center justify-between p-2 md:p-4 md:px-12 h-[5rem]">
         <img src={Logo4} alt="Kombination logo" className="h-auto max-w-[5rem] hidden md:block"/>
 
-        <ul className="grid grid-cols-3 gap-2">
+        <ul className="w-full md:size-fit grid grid-cols-3 gap-2">
           {navlinks.map(link => (
             <li key={link.title}>
               <Button className="w-full bg-transparent text-gray-primary flex flex-col md:flex-row md:gap-3 items-center text-xs">
