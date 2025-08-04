@@ -1,26 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 @import "tailwindcss";
 
-@import '@kombination/tailwind-config/tailwind-config';
-@import '@kombination/ui-components/ui-components-styles';
+@import "@kombination/tailwind-config/tailwind-config";
+@import "@kombination/ui-components/ui-components-styles";
 
 @source "../../../packages/ui-components/src";
 
 * {
-  font-family: "Press Start 2P", system-ui;
-  font-weight: 400;
-  font-style: normal;
+	font-family: "Press Start 2P", system-ui;
+	font-weight: 400;
+	font-style: normal;
 }
 
 body {
-  background-color: #2A2A3A;
+	background-color: #2a2a3a;
 }
 
 #root {
-  width: 100vw;
-  height: 100vh;
-  margin: 0 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  color: aliceblue;
+	width: 100vw;
+	height: 100vh;
+	margin: 0 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+	color: aliceblue;
 }
