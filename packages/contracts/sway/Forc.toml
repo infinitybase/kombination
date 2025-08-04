@@ -1,0 +1,2 @@
+[workspace]
+members = ["./kombination_lib", "./kombination_example"]

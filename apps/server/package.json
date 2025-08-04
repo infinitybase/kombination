@@ -1,25 +1,25 @@
 {
-	"name": "server",
-	"version": "0.0.1",
-	"module": "src/index.ts",
-	"type": "module",
-	"private": true,
-	"scripts": {
-		"dev": "bun --watch src/index.ts",
-		"build": "bun build src/index.ts --target bun --outdir ./dist",
-		"start": "NODE_ENV=production bun dist/index.js",
-		"test": "bun test"
-	},
-	"devDependencies": {
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
-		"typescript": "^5",
-		"elysia": "^1.2.25"
-	},
-	"dependencies": {
-		"@elysiajs/cors": "^1.2.0",
-		"@elysiajs/swagger": "^1.2.2",
-		"@kombination/env": "*"
-	}
+  "name": "server",
+  "version": "0.0.1",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --target bun --outdir ./dist --format esm",
+    "start": "NODE_ENV=production bun dist/index.js",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "elysia": "^1.2.25"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.2.0",
+    "@elysiajs/swagger": "^1.2.2",
+    "@kombination/env": "*"
+  }
 }

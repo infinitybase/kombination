@@ -2,12 +2,8 @@ import cors from "@elysiajs/cors";
 import swagger from "@elysiajs/swagger";
 import { apiEnv } from "@kombination/env";
 import Elysia from "elysia";
-import { readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { loadControllers } from "@utils/controllers-loader";
 
 export class App {
   private _app: Elysia;
@@ -15,36 +11,12 @@ export class App {
   constructor() {
     this._app = new Elysia();
 
-    this.setupPlugins();
-    this.setupRoutes();
+    this.setupPlugins(this._app);
   }
 
-  private setupRoutes() {
-    const controllersDir = join(__dirname, "../http/controllers");
-    const files = readdirSync(controllersDir);
-    for (const file of files) {
-      if (file.endsWith(".ts") || file.endsWith(".js")) {
-        const ControllerClass = require(join(controllersDir, file)).default;
-        if (typeof ControllerClass === "function") {
-          const controllerInstance = new ControllerClass();
-          if (typeof controllerInstance.routes === "function") {
-            controllerInstance.routes(this._app);
-          } else {
-            console.warn(
-              `Controller in ${file} does not have a routes method.`,
-            );
-          }
-        } else {
-          console.warn(
-            `File ${file} does not export a valid controller class.`,
-          );
-        }
-      }
-    }
-  }
-
-  private setupPlugins() {
-    this._app.use(
+  private setupPlugins(app: Elysia) {
+    app.use(cors());
+    app.use(
       swagger({
         path: "/swagger",
         documentation: {
@@ -52,11 +24,15 @@ export class App {
         },
       }),
     );
+  }
 
-    this._app.use(cors());
+  public async initialize() {
+    await loadControllers(this._app);
   }
 
   public async start() {
+    await this.initialize();
+    console.info("enviroment:", apiEnv.NODE_ENV);
     const PORT = apiEnv.PORT || 3001;
 
     this._app.listen(Number(PORT));
