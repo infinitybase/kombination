@@ -7,4 +7,23 @@
  
 @theme {
   --color-regal-blue: #243c5a; 
+  --color-gray-primary: #2A2A3A;
+  --color-gray-secondary: #3A3A4A;
+  --color-gray-tertiary: #5A5A68;
+  --color-gray-light: #D9D9D9;
+  --color-success: #66D575;
+  --color-warning: #C8D947;
+  --color-info: #47D2D9;
+  --color-danger: #D94E47;
+  --color-error: #E82376;
+  --color-beige-light: #C0B090;
+  --color-green-dark: #5A7A4E;
+  --color-salmon: #E05858;
+
+  --text-document-title: 2rem;
+  --text-page-title: 1.75rem;
+  --text-section-title: 1.5rem;
+  --text-subsection-title: 1.25rem;
+  --text-body: 1rem;
+  --text-label: 0.75rem;
 }
