@@ -21,21 +21,12 @@
   --color-red-light: #CC7E8E;
   --color-red-salmon: #E05858;
   --color-yellow-light: #FFF092;
-  --color-orange-light: #FFC092;
+  --color-yellow-light: #FFF092;
 
-  --text-title: 1.4rem;
-  --text-subtitle: 1.2rem;
-  --text-section: 1rem;
-  --text-subsection: 0.8rem;
-  --text-body: 0.7rem;
-  --text-label: 0.6rem;
-
-  --border-pixel-default: #374151;
-  --border-pixel-warning: var(--color-warning);
-  --border-pixel-success: var(--color-success);
-  --border-pixel-danger: var(--color-danger);
-  --border-pixel-neutral: var(--color-gray-tertiary);
-
-  --shadow-pixel: 6px 6px 0px var(--border-pixel-default);
+  --text-document-title: 2rem;
+  --text-page-title: 1.75rem;
+  --text-section-title: 1.5rem;
+  --text-subsection-title: 1.25rem;
+  --text-body: 1rem;
+  --text-label: 0.75rem;
 }
-
