@@ -5,7 +5,9 @@ export type AuctionData = {
     infos: string[],
     category: string,
     date: Date,
-    currentBidAmount: number
+    currentBidAmount: number,
+    isClosed: boolean,
+    winner: string | null,
     bids: BidsData[]
 }
 

@@ -27,7 +27,7 @@
   --text-section: 1.2rem;
   --text-subsection: 1rem;
   --text-body: 0.8rem;
-  --text-label: 0.7rem;
+  --text-label: 0.65rem;
 
   --spacing-header: 5rem;
   --spacing-page-height: calc(100vh - var(--spacing-header));
