@@ -31,6 +31,26 @@ export const auctionsMock: AuctionData[] = [
         amount: 130
       },
       {
+        name: "1x83...F482",
+        amount: 130
+      },
+      {
+        name: "1x83...F482",
+        amount: 130
+      },
+      {
+        name: "1x83...F482",
+        amount: 130
+      },
+      {
+        name: "1x83...F482",
+        amount: 130
+      },
+      {
+        name: "1x83...F482",
+        amount: 130
+      },
+      {
         name: "@ferabacal",
         amount: 210
       },

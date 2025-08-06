@@ -1,3 +1,4 @@
+import { BidPlacedDialog } from "@/features/barn-finds/components/BidPlacedDialog";
 import type { AuctionData } from "@/features/barn-finds/types";
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@kombination/ui-components/shadcn/badge.js"; 
@@ -17,10 +18,19 @@ export function Auction({
   onNextAuction,
   onPreviousAuction
 }: IAuctionProps) {
-  const [bidPlaced, setBidPlaced] = useState<number>();
+  const [bidAmount, setBidAmount] = useState<number>(); // TEMPORARY
+  const [bidPlaced, setBidPlaced] = useState(false); 
+  const [bidPlacedDialogOpen, setBidPlacedDialogOpen] = useState(false);
   const bids = auctionItemData.bids.sort((a,b) => a.amount > b.amount ? -1 : 1);
-  const isWalletConnected = true 
-  const minBidPermitted = auctionItemData.currentBidAmount + 10
+  const isWalletConnected = true // TEMPORARY
+  const minBidPermitted = auctionItemData.currentBidAmount + 10 // TEMPORARY
+
+  function handlePlaceBid() {
+    // TODO
+
+    setBidPlacedDialogOpen(true)
+    setBidPlaced(true)
+  }
 
   return (
     <div className="xl:w-[40%] xl:mt-10 xl:me-8 xl:mb-10 xl:pixel-frame">
@@ -64,15 +74,23 @@ export function Auction({
                 <>
                   <Input 
                     id="bid_amount"
-                    textType="success"
+                    className="text-success"
                     align="center"
                     type="number" 
-                    value={bidPlaced} 
+                    value={bidAmount} 
                     min={minBidPermitted}
-                    onChange={(e) => setBidPlaced(e.target.valueAsNumber)} 
+                    disabled={bidPlaced}
+                    onChange={(e) => setBidAmount(e.target.valueAsNumber)} 
                     />
-                  <Button type="button" variant="success" className="p-4" size="sm" >
-                    Place Bid
+                  <Button 
+                    type="button" 
+                    variant={bidPlaced ? "default" : "success"} 
+                    className="p-4" 
+                    size="sm" 
+                    disabled={bidPlaced || !bidAmount}
+                    onClick={handlePlaceBid}
+                    >
+                      {bidPlaced ? "Bid Placed!" : "Place Bid"}
                   </Button>
                 </>
               ) : (
@@ -87,7 +105,7 @@ export function Auction({
         <hr className='border-2 border-gray-tertiary w-full' />
 
         <p className="text-label text-gray-light">All Bids</p>
-        <div className="w-full flex flex-col gap-2 pt-2">
+        <div className="w-full flex flex-col gap-2 pt-2 overflow-auto scrollbar-custom pr-2">
           {bids.map((bid, index) => {
             return (
               <div key={bid.name} className={`flex justify-between text-label text-beige-light ${index === 0 && 'text-warning'}`}>
@@ -98,6 +116,8 @@ export function Auction({
           })}
         </div>
       </div>
+
+      <BidPlacedDialog isOpen={bidPlacedDialogOpen} setIsOpen={setBidPlacedDialogOpen} />
     </div>
   )
 }
