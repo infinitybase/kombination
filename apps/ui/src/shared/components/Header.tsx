@@ -1,10 +1,10 @@
-import { Button } from "./shadcn/button";
+import { Button } from '@kombination/ui-components/shadcn/button.js';
 import Logo4 from './assets/logo-variant-4.svg';
 import AutoParts from './assets/icons/autoparts-hover.svg';
 import Garage from './assets/icons/garage-hover.svg';
 import BarnFinds from './assets/icons/barn-finds-hover.svg';
 
-export function Navigation() {
+export function Header() {
   const navlinks = [
     {
       title: "Barn Finds",

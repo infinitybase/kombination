@@ -1,5 +1,5 @@
-import { Badge } from "./shadcn/badge";
-import { Button } from "./shadcn/button";
+import { Badge } from "@kombination/ui-components/shadcn/badge.js"; 
+import { Button } from "@kombination/ui-components/shadcn/button.js"; 
 
 interface IAuctionProps {
   auctionItemData: string;
@@ -14,9 +14,6 @@ export function Auction({
 }: IAuctionProps) {
   return (
     <div className="bg-gray-primary px-6 py-4 lg:m-6 lg:w-[40%] flex flex-col gap-6 pixel-frame">
-     {/*  <span className="absolute part-top-right"></span>
-      <span className="absolute part-bottom-left"></span> */}
-
       <div className="w-full flex justify-between items-center">
         <Button variant="ghost" className="text-warning" onClick={onPreviousAuction}>«</Button>
         <span className="text-body text-warning">data de hoje :D</span>
