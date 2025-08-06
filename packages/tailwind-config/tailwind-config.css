@@ -10,7 +10,7 @@
   --color-gray-primary: #2A2A3A;
   --color-gray-secondary: #3A3A4A;
   --color-gray-tertiary: #5A5A68;
-  --color-gray-light: #808080;
+  --color-gray-light: #8f8f8f;
   --color-success: #66D575;
   --color-warning: #D9A647;
   --color-info: #47D2D9;
@@ -21,12 +21,16 @@
   --color-red-light: #CC7E8E;
   --color-red-salmon: #E05858;
   --color-yellow-light: #FFF092;
-  --color-yellow-light: #FFF092;
 
-  --text-document-title: 2rem;
-  --text-page-title: 1.75rem;
-  --text-section-title: 1.5rem;
-  --text-subsection-title: 1.25rem;
-  --text-body: 1rem;
-  --text-label: 0.75rem;
+  --text-title: 1.6rem;
+  --text-subtitle: 1.4rem;
+  --text-section: 1.2rem;
+  --text-subsection: 1rem;
+  --text-body: 0.8rem;
+  --text-label: 0.7rem;
+
+  --spacing-header: 5rem;
+  --spacing-page-height: calc(100vh - var(--spacing-header));
+  --spacing-max-width: 120rem;
+  --spacing-max-height: 56rem;
 }

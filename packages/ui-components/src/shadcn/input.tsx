@@ -5,7 +5,7 @@ import { Search } from "lucide-react"
 
 function Input({ className, type, error, align, textType, ...props }: React.ComponentProps<"input"> & { error?: string, align?: "center", textType?: "success" }) {
   return (
-    <div className="w-full relative">
+    <div className="relative">
       {type === "search" && <Search className={cn("text-gray-tertiary absolute top-2 left-2", error && "text-danger" )}/>}
       
       <input
