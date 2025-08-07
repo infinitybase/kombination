@@ -1,4 +1,4 @@
-import { BidPlacedDialog } from "@/features/barn-finds/components/BidPlacedDialog";
+import { BidPlacedDialog } from "@/components/BidPlacedDialog";
 import type { AuctionData } from "@/features/barn-finds/types";
 import { useCountdown } from "@/hooks/useCountdown";
 import { formatDate } from "@/utils/formatDate";

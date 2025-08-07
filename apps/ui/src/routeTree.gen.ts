@@ -9,8 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as GarageRouteImport } from './routes/garage'
+import { Route as BarnFindsRouteImport } from './routes/barn-finds'
+import { Route as AutopartsRouteImport } from './routes/autoparts'
 import { Route as IndexRouteImport } from './routes/index'
 
+const GarageRoute = GarageRouteImport.update({
+  id: '/garage',
+  path: '/garage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BarnFindsRoute = BarnFindsRouteImport.update({
+  id: '/barn-finds',
+  path: '/barn-finds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutopartsRoute = AutopartsRouteImport.update({
+  id: '/autoparts',
+  path: '/autoparts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +37,61 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/autoparts': typeof AutopartsRoute
+  '/barn-finds': typeof BarnFindsRoute
+  '/garage': typeof GarageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/autoparts': typeof AutopartsRoute
+  '/barn-finds': typeof BarnFindsRoute
+  '/garage': typeof GarageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/autoparts': typeof AutopartsRoute
+  '/barn-finds': typeof BarnFindsRoute
+  '/garage': typeof GarageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/autoparts' | '/barn-finds' | '/garage'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/autoparts' | '/barn-finds' | '/garage'
+  id: '__root__' | '/' | '/autoparts' | '/barn-finds' | '/garage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AutopartsRoute: typeof AutopartsRoute
+  BarnFindsRoute: typeof BarnFindsRoute
+  GarageRoute: typeof GarageRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/garage': {
+      id: '/garage'
+      path: '/garage'
+      fullPath: '/garage'
+      preLoaderRoute: typeof GarageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/barn-finds': {
+      id: '/barn-finds'
+      path: '/barn-finds'
+      fullPath: '/barn-finds'
+      preLoaderRoute: typeof BarnFindsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/autoparts': {
+      id: '/autoparts'
+      path: '/autoparts'
+      fullPath: '/autoparts'
+      preLoaderRoute: typeof AutopartsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +104,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AutopartsRoute: AutopartsRoute,
+  BarnFindsRoute: BarnFindsRoute,
+  GarageRoute: GarageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
